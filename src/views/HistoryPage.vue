@@ -108,11 +108,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { db } from '@/db/db'; // Updated import using @ alias
+// Replace direct DB import with historyStore
+import { useHistoryStore } from '@/store/modules/historyStore';
 import { useObservable } from '@vueuse/rxjs'; // Using vueuse for live updates
 import { liveQuery } from 'dexie';
 
 const router = useRouter();
+const historyStore = useHistoryStore(); // Initialize history store
 const isLoading = ref(true);
 const error = ref(null);
 const showDeleteModal = ref(false);
@@ -126,9 +128,9 @@ onMounted(async () => {
   try {
     isLoading.value = true;
     error.value = null;
-    // Fetch chats sorted by timestamp descending
-    const chats = await db.chats.orderBy('timestamp').reverse().toArray();
-    chatHistoryData.value = chats;
+    // Use the history store to fetch chats instead of direct DB access
+    await historyStore.fetchAllChats();
+    chatHistoryData.value = historyStore.sortedChats;
   } catch (err) {
     console.error("Failed to fetch chat history:", err);
     error.value = err.message || 'Could not load history.';
@@ -138,12 +140,12 @@ onMounted(async () => {
   }
   
   // Set up live query for real-time updates
+  // We can still use liveQuery here but fetch data through the store
   useObservable(
     liveQuery(async () => {
       try {
-        // Fetch chats sorted by timestamp descending
-        const chats = await db.chats.orderBy('timestamp').reverse().toArray();
-        chatHistoryData.value = chats;
+        await historyStore.fetchAllChats();
+        chatHistoryData.value = historyStore.sortedChats;
       } catch (err) {
         console.error("Failed to fetch chat history:", err);
         error.value = err.message || 'Could not load history.';
@@ -224,7 +226,8 @@ const deleteConfirmed = async () => {
   if (!chatToDelete.value) return;
   
   try {
-    await db.chats.delete(chatToDelete.value);
+    // Use the store's delete method instead of direct DB access
+    await historyStore.deleteChat(chatToDelete.value);
     console.log(`Chat session ${chatToDelete.value} deleted.`);
     
     // The list will update automatically thanks to liveQuery

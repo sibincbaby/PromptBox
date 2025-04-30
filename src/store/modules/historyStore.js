@@ -9,68 +9,108 @@ export const useHistoryStore = defineStore('history', () => {
   const error = ref(null)
   
   // Actions
-  async function fetchHistory() {
+  async function fetchAllChats() {
     isLoading.value = true
     error.value = null
     
     try {
-      // Fetch history items from database
-      const items = await db.history.toArray()
-      history.value = items
+      // Fetch all chats from database
+      const chats = await db.chats.orderBy('timestamp').toArray()
+      history.value = chats
     } catch (err) {
-      error.value = err.message || 'Failed to fetch history'
-      console.error('Error fetching history:', err)
+      error.value = err.message || 'Failed to fetch chats'
+      console.error('Error fetching chats:', err)
     } finally {
       isLoading.value = false
     }
   }
   
-  async function addToHistory(item) {
+  async function getChatById(id) {
     try {
-      // Add timestamp if not provided
-      const historyItem = { 
-        ...item, 
-        timestamp: item.timestamp || new Date().toISOString() 
-      }
-      
-      // Save to database
-      const id = await db.history.add(historyItem)
-      
-      // Update local state - add to beginning of array
-      history.value = [{ id, ...historyItem }, ...history.value]
-      
-      return id
+      return await db.chats.get(id)
     } catch (err) {
-      error.value = err.message || 'Failed to add to history'
-      console.error('Error adding to history:', err)
+      error.value = err.message || `Failed to get chat with id ${id}`
+      console.error(`Error fetching chat ${id}:`, err)
       return null
     }
   }
   
-  async function removeFromHistory(id) {
+  async function addChat(chatData) {
     try {
-      // Delete from database
-      await db.history.delete(id)
+      // Add to database
+      const id = await db.chats.add(chatData)
       
       // Update local state
-      history.value = history.value.filter(item => item.id !== id)
+      history.value.push({ id, ...chatData })
+      
+      return id
     } catch (err) {
-      error.value = err.message || 'Failed to remove from history'
-      console.error('Error removing from history:', err)
+      error.value = err.message || 'Failed to add chat'
+      console.error('Error adding chat:', err)
+      return null
     }
   }
   
-  async function clearHistory() {
+  async function updateChat(id, chatData) {
+    try {
+      // Update in database
+      await db.chats.update(id, chatData)
+      
+      // Update local state
+      const index = history.value.findIndex(chat => chat.id === id)
+      if (index !== -1) {
+        history.value[index] = { id, ...chatData }
+      }
+      
+      return id
+    } catch (err) {
+      error.value = err.message || `Failed to update chat with id ${id}`
+      console.error(`Error updating chat ${id}:`, err)
+      return null
+    }
+  }
+  
+  async function deleteChat(id) {
+    try {
+      // Delete from database
+      await db.chats.delete(id)
+      
+      // Update local state
+      history.value = history.value.filter(chat => chat.id !== id)
+    } catch (err) {
+      error.value = err.message || `Failed to delete chat with id ${id}`
+      console.error(`Error deleting chat ${id}:`, err)
+    }
+  }
+  
+  async function clearAllChats() {
     try {
       // Clear database
-      await db.history.clear()
+      await db.chats.clear()
       
       // Clear local state
       history.value = []
     } catch (err) {
-      error.value = err.message || 'Failed to clear history'
-      console.error('Error clearing history:', err)
+      error.value = err.message || 'Failed to clear all chats'
+      console.error('Error clearing chats:', err)
     }
+  }
+  
+  // Existing methods kept for backwards compatibility
+  async function fetchHistory() {
+    await fetchAllChats()
+  }
+  
+  async function addToHistory(item) {
+    return await addChat(item)
+  }
+  
+  async function removeFromHistory(id) {
+    await deleteChat(id)
+  }
+  
+  async function clearHistory() {
+    await clearAllChats()
   }
   
   // Improved method that accepts the limit as a parameter rather than importing another store
@@ -103,14 +143,14 @@ export const useHistoryStore = defineStore('history', () => {
   // Helper function to delete items from database
   async function removeOldItems(itemsToRemove) {
     for (const item of itemsToRemove) {
-      await db.history.delete(item.id)
+      await db.chats.delete(item.id)
     }
   }
   
   // Getters
   const historyItems = computed(() => history.value)
   const hasHistory = computed(() => history.value.length > 0)
-  const sortedHistory = computed(() => 
+  const sortedChats = computed(() => 
     [...history.value].sort((a, b) => 
       new Date(b.timestamp) - new Date(a.timestamp)
     )
@@ -123,6 +163,14 @@ export const useHistoryStore = defineStore('history', () => {
     error,
     
     // Actions
+    fetchAllChats,
+    getChatById,
+    addChat,
+    updateChat, 
+    deleteChat,
+    clearAllChats,
+    
+    // Legacy methods (for backwards compatibility)
     fetchHistory,
     addToHistory,
     removeFromHistory,
@@ -132,7 +180,7 @@ export const useHistoryStore = defineStore('history', () => {
     // Getters
     historyItems,
     hasHistory,
-    sortedHistory
+    sortedChats
   }
 }, {
   // Persistence configuration

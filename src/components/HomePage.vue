@@ -114,11 +114,13 @@
 <script setup>
 import { ref, nextTick, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { callGeminiApi } from '@/services/geminiService'; // Updated import using @ alias
-import { db } from '@/db/db'; // Updated import using @ alias
+import { callGeminiApi } from '@/services/geminiService';
+// Remove direct DB import and import stores instead
+import { useHistoryStore } from '@/store/modules/historyStore';
 
 const route = useRoute();
 const router = useRouter();
+const historyStore = useHistoryStore(); // Initialize history store
 
 const promptInput = ref('');
 const chatMessages = ref([]); // { sender: 'user' | 'model', text: '...' }
@@ -158,7 +160,8 @@ const loadChat = async (chatId) => {
   }
   try {
     const id = parseInt(chatId);
-    const chat = await db.chats.get(id);
+    // Use historyStore to get chat by id instead of direct DB access
+    const chat = await historyStore.getChatById(id);
     if (chat) {
       chatMessages.value = chat.messages;
       currentChatId.value = chat.id;
@@ -196,7 +199,7 @@ const handleEnterKey = (event) => {
   sendPrompt();
 };
 
-// Function to save the current chat session to Dexie
+// Function to save the current chat session using the store
 const saveChatSession = async () => {
   if (chatMessages.value.length === 0) return; // Don't save empty chats
 
@@ -207,17 +210,18 @@ const saveChatSession = async () => {
   };
 
   try {
+    let id;
     if (currentChatId.value) {
-      // Update existing chat
-      await db.chats.update(currentChatId.value, chatData);
+      // Update existing chat through the store
+      id = await historyStore.updateChat(currentChatId.value, chatData);
     } else {
-      // Add new chat and get the new ID
-      const newId = await db.chats.add(chatData);
-      currentChatId.value = newId;
+      // Add new chat and get the new ID through the store
+      id = await historyStore.addChat(chatData);
+      currentChatId.value = id;
       // Update URL without reloading page/triggering watcher unnecessarily
-      router.replace({ query: { chatId: newId } });
+      router.replace({ query: { chatId: id } });
     }
-    console.log('Chat session saved/updated with ID:', currentChatId.value);
+    console.log('Chat session saved/updated with ID:', id);
   } catch (err) {
     console.error('Failed to save chat session:', err);
     // Don't show this error to the user directly, maybe log it
