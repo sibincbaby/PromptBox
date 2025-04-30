@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from '../db'; // Import Dexie db instance
+import { db } from '@/db/db'; // Updated import using @ alias
 
 // Function to get settings from Dexie
 async function getSettings() {

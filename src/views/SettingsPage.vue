@@ -173,7 +173,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { db } from '../db'; // Import Dexie db instance
+import { db } from '@/db/db'; // Updated import using @ alias
 
 // Initialize reactive settings object with default values
 const settings = reactive({

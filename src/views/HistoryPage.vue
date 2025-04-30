@@ -106,9 +106,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { db } from '../db'; // Import Dexie db instance
+import { db } from '@/db/db'; // Updated import using @ alias
 import { useObservable } from '@vueuse/rxjs'; // Using vueuse for live updates
 import { liveQuery } from 'dexie';
 
@@ -117,25 +117,40 @@ const isLoading = ref(true);
 const error = ref(null);
 const showDeleteModal = ref(false);
 const chatToDelete = ref(null);
+const chatHistoryData = ref([]);
 
 // Use liveQuery to automatically update the list when DB changes
-const chatHistory = useObservable(
-  liveQuery(async () => {
+const chatHistory = computed(() => chatHistoryData.value || []);
+
+onMounted(async () => {
+  try {
     isLoading.value = true;
     error.value = null;
-    try {
-      // Fetch chats sorted by timestamp descending
-      const chats = await db.chats.orderBy('timestamp').reverse().toArray();
-      return chats;
-    } catch (err) {
-      console.error("Failed to fetch chat history:", err);
-      error.value = err.message || 'Could not load history.';
-      return []; // Return empty array on error
-    } finally {
-      isLoading.value = false;
-    }
-  })
-);
+    // Fetch chats sorted by timestamp descending
+    const chats = await db.chats.orderBy('timestamp').reverse().toArray();
+    chatHistoryData.value = chats;
+  } catch (err) {
+    console.error("Failed to fetch chat history:", err);
+    error.value = err.message || 'Could not load history.';
+    chatHistoryData.value = []; // Ensure it's always an array
+  } finally {
+    isLoading.value = false;
+  }
+  
+  // Set up live query for real-time updates
+  useObservable(
+    liveQuery(async () => {
+      try {
+        // Fetch chats sorted by timestamp descending
+        const chats = await db.chats.orderBy('timestamp').reverse().toArray();
+        chatHistoryData.value = chats;
+      } catch (err) {
+        console.error("Failed to fetch chat history:", err);
+        error.value = err.message || 'Could not load history.';
+      }
+    })
+  );
+});
 
 const formatTimestamp = (timestamp) => {
   if (!timestamp) return 'Unknown date';

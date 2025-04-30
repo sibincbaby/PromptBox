@@ -114,8 +114,8 @@
 <script setup>
 import { ref, nextTick, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { callGeminiApi } from '../services/geminiService'; // Import the API service
-import { db } from '../db'; // Import Dexie db instance
+import { callGeminiApi } from '@/services/geminiService'; // Updated import using @ alias
+import { db } from '@/db/db'; // Updated import using @ alias
 
 const route = useRoute();
 const router = useRouter();

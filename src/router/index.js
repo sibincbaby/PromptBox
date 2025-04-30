@@ -1,7 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import HomePage from '../components/HomePage.vue'; // Use the component directly for the main chat
-import HistoryPage from '../views/HistoryPage.vue';
-import SettingsPage from '../views/SettingsPage.vue';
+
+// Implement lazy loading for components
+const HomePage = () => import('../components/HomePage.vue');
+const HistoryPage = () => import('../views/HistoryPage.vue');
+const SettingsPage = () => import('../views/SettingsPage.vue');
 
 const routes = [
   {
