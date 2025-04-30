@@ -1,47 +1,26 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from '@/db/db'; // Updated import using @ alias
-
-// Function to get settings from Dexie
-async function getSettings() {
-  const apiKey = await db.settings.get('apiKey');
-  const modelName = await db.settings.get('modelName');
-  const systemPrompt = await db.settings.get('systemPrompt');
-  const temperature = await db.settings.get('temperature');
-  const topP = await db.settings.get('topP');
-  const maxOutputTokens = await db.settings.get('maxOutputTokens');
-  // Add other settings as needed
-
-  return {
-    apiKey: apiKey?.value || '', // Default to empty string if not set
-    modelName: modelName?.value || 'gemini-1.5-flash', // Default model
-    systemPrompt: systemPrompt?.value || '',
-    temperature: temperature?.value !== undefined ? parseFloat(temperature.value) : 0.9, // Default temperature
-    topP: topP?.value !== undefined ? parseFloat(topP.value) : 1,
-    maxOutputTokens: maxOutputTokens?.value !== undefined ? parseInt(maxOutputTokens.value) : 2048, // Default max tokens
-  };
-}
+import { useSettingsStore } from '@/store/modules/settingsStore';
 
 export async function callGeminiApi(prompt) {
-  const settings = await getSettings();
+  const settingsStore = useSettingsStore();
+  
+  // Make sure settings are loaded from DB before checking API key
+  await settingsStore.loadAllSettings();
 
-  if (!settings.apiKey) {
+  if (!settingsStore.apiKey) {
     throw new Error('API Key not set. Please configure it in the Settings page.');
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(settings.apiKey);
+    const genAI = new GoogleGenerativeAI(settingsStore.apiKey);
     const model = genAI.getGenerativeModel({ 
-      model: settings.modelName,
+      model: settingsStore.modelName,
       // Add systemInstruction if systemPrompt is set
-      ...(settings.systemPrompt && { systemInstruction: settings.systemPrompt })
+      ...(settingsStore.systemPrompt && { systemInstruction: settingsStore.systemPrompt })
     });
 
-    const generationConfig = {
-      temperature: settings.temperature,
-      topP: settings.topP,
-      maxOutputTokens: settings.maxOutputTokens,
-      // Add other generation config parameters based on settings
-    };
+    // Get generation config from the settings store
+    const generationConfig = settingsStore.getModelConfig();
 
     // Simple text-only prompt for now
     const result = await model.generateContent(prompt);

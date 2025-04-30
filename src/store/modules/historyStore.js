@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { db } from '../../db/db'
+import { useSettingsStore } from './settingsStore' // Import settings store
 
 export const useHistoryStore = defineStore('history', () => {
   // State
@@ -42,6 +43,9 @@ export const useHistoryStore = defineStore('history', () => {
       
       // Update local state
       history.value.push({ id, ...chatData })
+      
+      // Enforce history limit after adding new chat
+      await enforceHistoryLimit()
       
       return id
     } catch (err) {
@@ -113,8 +117,11 @@ export const useHistoryStore = defineStore('history', () => {
     await clearAllChats()
   }
   
-  // Improved method that accepts the limit as a parameter rather than importing another store
-  async function enforceHistoryLimit(limit = 50) {
+  // Improved method that uses the settings store directly
+  async function enforceHistoryLimit() {
+    const settingsStore = useSettingsStore()
+    const limit = settingsStore.maxHistoryItems
+    
     if (history.value.length <= limit) return
     
     try {

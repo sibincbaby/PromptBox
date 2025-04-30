@@ -4,6 +4,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import './styles/style.css'
 import App from './App.vue'
 import router from './router'
+import { useSettingsStore } from './store/modules/settingsStore'
 
 // Create Vue app
 const app = createApp(App)
@@ -15,6 +16,10 @@ pinia.use(piniaPluginPersistedstate)
 // Use plugins
 app.use(router)
 app.use(pinia)
+
+// Initialize settings store
+const settingsStore = useSettingsStore()
+settingsStore.loadAllSettings()
 
 // Mount app
 app.mount('#app')
