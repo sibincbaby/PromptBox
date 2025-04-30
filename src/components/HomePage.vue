@@ -1,52 +1,112 @@
 <template>
-  <div class="home-page flex flex-col h-full">
+  <div class="home-page flex flex-col h-full bg-gray-50">
     <!-- Chat Area -->
-    <div ref="chatAreaRef" class="chat-area flex-grow overflow-y-auto p-4 space-y-4 bg-gray-100">
-      <!-- Messages will be displayed here -->
-      <div v-for="(message, index) in chatMessages" :key="index" 
-           :class="[
-             'p-3 rounded-lg max-w-xl break-words',
-             message.sender === 'user' ? 'bg-blue-500 text-white self-end ml-auto' : 'bg-white text-gray-800 self-start mr-auto'
-           ]">
-        <pre class="whitespace-pre-wrap font-sans">{{ message.text }}</pre>
-        <!-- Add copy button for model responses -->
-         <button v-if="message.sender === 'model'" @click="copyToClipboard(message.text)" title="Copy Response" class="ml-2 text-xs text-gray-400 hover:text-gray-600">
-           Copy
-         </button>
-      </div>
-      <!-- Loading Indicator -->
-      <div v-if="isLoading" class="text-center text-gray-500">
-        Loading...
-      </div>
-      <!-- Error Display -->
-      <div v-if="error" class="text-red-500 bg-red-100 p-3 rounded-lg">
-        Error: {{ error }}
+    <div ref="chatAreaRef" class="chat-area flex-grow overflow-y-auto px-3 py-4 thin-scrollbar">
+      <div class="flex flex-col space-y-4 mb-2">
+        <!-- Empty State -->
+        <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-48 animate-fade-in">
+          <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          </div>
+          <p class="text-gray-500 text-center">Start a new conversation with Gemini</p>
+        </div>
+
+        <!-- Messages -->
+        <div v-for="(message, index) in chatMessages" :key="index" 
+            :class="[
+              'group max-w-[85%] break-words',
+              message.sender === 'user' 
+                ? 'ml-auto animate-slide-in' 
+                : 'mr-auto animate-slide-in'
+            ]">
+          <!-- Message Content -->
+          <div :class="[
+            'px-4 py-3 rounded-2xl shadow-sm',
+            message.sender === 'user' 
+              ? 'bg-indigo-600 text-white rounded-br-sm' 
+              : 'bg-white text-gray-800 rounded-bl-sm'
+          ]">
+            <pre class="whitespace-pre-wrap font-sans text-sm leading-relaxed">{{ message.text }}</pre>
+          </div>
+          
+          <!-- Message Actions -->
+          <div class="flex justify-end mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button v-if="message.sender === 'model'" 
+                   @click="copyToClipboard(message.text)" 
+                   class="text-xs text-gray-400 hover:text-gray-600 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div v-if="isLoading" class="flex items-center justify-center py-4">
+          <div class="flex space-x-1">
+            <div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+            <div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+          </div>
+        </div>
+
+        <!-- Error Display -->
+        <div v-if="error" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-fade-in">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-700">{{ error }}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Input Area -->
-    <div class="input-area p-4 border-t border-gray-300 bg-white flex items-center space-x-2">
-      <button @click="startNewChat" title="New Chat" class="p-2 rounded hover:bg-gray-200">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-      </button>
-      <textarea ref="textareaRef" v-model="promptInput" 
+    <div class="input-area p-3 bg-white border-t border-gray-100 shadow-inner">
+      <div class="flex items-end space-x-2 bg-gray-50 rounded-2xl px-3 py-2">
+        <button @click="startNewChat" 
+                class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-indigo-600 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        </button>
+      
+        <textarea ref="textareaRef" v-model="promptInput" 
                 @input="autoResizeTextarea" 
                 @keydown.enter.prevent="handleEnterKey" 
-                placeholder="Enter your prompt here..." 
-                class="flex-grow p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                placeholder="Message Gemini..." 
+                class="flex-grow bg-transparent text-sm p-2 max-h-32 min-h-[2.5rem] focus:outline-none resize-none" 
                 rows="1"></textarea>
-      <button @click="clearInput" title="Clear Input" class="p-2 rounded hover:bg-gray-200" :disabled="!promptInput">
-         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <button @click="sendPrompt" title="Send Prompt" class="p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50" :disabled="isLoading || !promptInput">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-        </svg>
-      </button>
+      
+        <button v-if="promptInput.trim()"
+                @click="clearInput" 
+                class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-600 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      
+        <button @click="sendPrompt" 
+                :disabled="isLoading || !promptInput.trim()"
+                :class="[
+                  'p-2 rounded-full focus:outline-none transition-all transform',
+                  promptInput.trim() && !isLoading 
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-90' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -68,12 +128,15 @@ const textareaRef = ref(null); // Ref for the textarea element
 const chatAreaRef = ref(null); // Ref for the chat area div
 const currentChatId = ref(null); // To track the current chat session ID in the DB
 
-// Function to scroll chat area to bottom
+// Function to scroll chat area to bottom with smooth animation
 const scrollToBottom = () => {
   nextTick(() => {
     const chatArea = chatAreaRef.value;
     if (chatArea) {
-      chatArea.scrollTop = chatArea.scrollHeight;
+      chatArea.scrollTo({
+        top: chatArea.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   });
 };
@@ -83,7 +146,7 @@ const autoResizeTextarea = () => {
   const textarea = textareaRef.value;
   if (textarea) {
     textarea.style.height = 'auto'; // Reset height
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`; // Set to scroll height with max
   }
 };
 
@@ -172,18 +235,23 @@ const sendPrompt = async () => {
   isLoading.value = true;
   error.value = null;
 
-  // Save immediately after user sends message (optional, could save only after response)
-  // await saveChatSession(); 
-
   try {
     const responseText = await callGeminiApi(currentPrompt);
-    chatMessages.value.push({ sender: 'model', text: responseText });
-    // Save chat session after successful response
-    await saveChatSession();
+    // Add a small delay for a more natural feeling conversation flow
+    setTimeout(() => {
+      chatMessages.value.push({ sender: 'model', text: responseText });
+      isLoading.value = false;
+      // Add subtle haptic feedback if available
+      if (window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+      }
+      // Save chat session after successful response
+      saveChatSession();
+      scrollToBottom();
+    }, 300);
   } catch (err) {
     console.error('API Error:', err);
     error.value = err.message || 'Failed to get response from API.';
-  } finally {
     isLoading.value = false;
     scrollToBottom();
   }
@@ -192,6 +260,10 @@ const sendPrompt = async () => {
 const clearInput = () => {
   promptInput.value = '';
   autoResizeTextarea();
+  // Add subtle haptic feedback
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(20);
+  }
 };
 
 const startNewChat = () => {
@@ -211,33 +283,73 @@ const startNewChat = () => {
 const copyToClipboard = async (text) => {
   try {
     await navigator.clipboard.writeText(text);
-    console.log('Response copied to clipboard!');
+    // Add subtle haptic feedback
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate([30, 30, 30]);
+    }
+    // Visual feedback for copy action
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm animate-fade-in';
+    notification.textContent = 'Copied to clipboard';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      notification.style.transition = 'opacity 0.5s ease';
+      setTimeout(() => document.body.removeChild(notification), 500);
+    }, 1500);
   } catch (err) {
     console.error('Failed to copy text: ', err);
   }
 };
-
 </script>
 
 <style scoped>
 /* Scoped styles for HomePage */
 .home-page {
-  /* Max height might be needed depending on parent container */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
+
+/* Improve animations for message appearance */
+@keyframes messageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom styling for the send button when active */
+.send-button:active {
+  transform: scale(0.9);
+  transition: transform 0.2s;
+}
+
+/* Stylish scrollbar for mobile */
 .chat-area {
-  scrollbar-width: thin; /* Firefox */
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
 }
+
 .chat-area::-webkit-scrollbar {
-  width: 8px; /* Chrome, Safari, Edge */
+  width: 4px;
 }
+
 .chat-area::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1; /* gray-300 */
+  background-color: rgba(203, 213, 225, 0.5);
   border-radius: 4px;
 }
+
 textarea {
   min-height: 40px;
   max-height: 200px;
   overflow-y: auto;
+  transition: height 0.2s ease;
 }
 </style>
 

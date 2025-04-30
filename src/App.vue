@@ -1,36 +1,82 @@
 <template>
-  <div id="app" class="flex flex-col h-screen">
-    <!-- Header -->
-    <header class="bg-gray-800 text-white shadow-md">
-      <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-        <h1 class="text-xl font-bold">Gemini Prompt Tester</h1>
-        <!-- Navigation Tabs -->
-        <nav class="space-x-4">
-          <router-link to="/" class="px-3 py-2 rounded hover:bg-gray-700" active-class="bg-gray-900">Home</router-link>
-          <router-link to="/history" class="px-3 py-2 rounded hover:bg-gray-700" active-class="bg-gray-900">History</router-link>
-          <router-link to="/settings" class="px-3 py-2 rounded hover:bg-gray-700" active-class="bg-gray-900">Settings</router-link>
-        </nav>
+  <div id="app" class="flex flex-col h-screen bg-surface-variant">
+    <!-- Status Bar -->
+    <header class="bg-surface shadow-sm z-10">
+      <div class="px-4 py-3 flex justify-between items-center">
+        <h1 class="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">PromptBox</h1>
+        <div class="flex items-center space-x-1">
+          <!-- Optional header actions (like search, account, etc) -->
+        </div>
       </div>
     </header>
 
-    <!-- Main Content Area - Router View -->
-    <main class="flex-grow overflow-auto bg-gray-50">
+    <!-- Main Content Area with animations -->
+    <main class="flex-grow overflow-auto thin-scrollbar pb-safe relative">
       <router-view v-slot="{ Component }">
-        <keep-alive>
-          <component :is="Component" />
-        </keep-alive>
+        <transition
+          name="page"
+          mode="out-in"
+          @before-leave="beforePageLeave"
+          @enter="onPageEnter"
+        >
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </transition>
       </router-view>
     </main>
 
-    <!-- Footer Placeholder -->
-    <footer class="bg-gray-200 p-2 text-center text-sm text-gray-600">
-      Powered by Manus
-    </footer>
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="bg-surface shadow-lg border-t border-gray-100 pb-safe">
+      <div class="flex justify-around items-center">
+        <router-link to="/" class="mobile-tab-button group py-2 px-4" active-class="text-indigo-600">
+          <div class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform group-active:scale-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <span class="text-xs mt-1">Chat</span>
+          </div>
+        </router-link>
+        
+        <router-link to="/history" class="mobile-tab-button group py-2 px-4" active-class="text-indigo-600">
+          <div class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform group-active:scale-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-xs mt-1">History</span>
+          </div>
+        </router-link>
+        
+        <router-link to="/settings" class="mobile-tab-button group py-2 px-4" active-class="text-indigo-600">
+          <div class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform group-active:scale-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="text-xs mt-1">Settings</span>
+          </div>
+        </router-link>
+      </div>
+    </nav>
   </div>
 </template>
 
 <script setup>
-// No script needed for basic layout and router-view
+// Scripts for handling page transitions
+const beforePageLeave = (el) => {
+  el.style.opacity = 0;
+  el.style.transform = 'translateY(10px)';
+};
+
+const onPageEnter = (el) => {
+  el.style.opacity = 0;
+  el.style.transform = 'translateY(10px)';
+  setTimeout(() => {
+    el.style.transition = 'all 0.3s ease';
+    el.style.opacity = 1;
+    el.style.transform = 'translateY(0)';
+  }, 50);
+};
 </script>
 
 <style>
@@ -38,15 +84,35 @@
 html, body {
   height: 100%;
   margin: 0;
-  background-color: #f9fafb; /* bg-gray-50 */
-}
-#app {
-  /* Additional styling if needed */
 }
 
-/* Styling for active router link */
-.router-link-exact-active {
-  /* Tailwind's active-class handles this, but you can add more specific styles here if needed */
+/* Safe area padding for iOS devices */
+.pb-safe {
+  padding-bottom: calc(0.5rem + var(--safe-area-bottom));
+}
+
+/* Active tab indicator animation */
+.router-link-active::after {
+  content: '';
+  @apply block w-1/2 h-1 mx-auto mt-1 rounded-full bg-indigo-600;
+  animation: scaleIn 0.3s ease forwards;
+}
+
+@keyframes scaleIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Page transition effects */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 </style>
 
