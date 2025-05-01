@@ -85,8 +85,10 @@
     
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" 
-         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 animate-fade-in">
-      <div class="bg-white rounded-lg w-11/12 max-w-sm p-5 shadow-lg animate-slide-up">
+         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 animate-fade-in"
+         style="touch-action: none; -webkit-overflow-scrolling: none;">
+      <div class="bg-white rounded-lg w-11/12 max-w-sm p-5 shadow-lg animate-slide-up transform translate-y-0 my-auto mx-auto"
+           @click.stop>
         <h3 class="text-lg font-medium mb-3">Delete Chat</h3>
         <p class="text-gray-600 mb-5">Are you sure you want to delete this chat? This action cannot be undone.</p>
         
@@ -106,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 // Replace direct DB import with historyStore
 import { useHistoryStore } from '@/store/modules/historyStore';
@@ -120,6 +122,23 @@ const error = ref(null);
 const showDeleteModal = ref(false);
 const chatToDelete = ref(null);
 const chatHistoryData = ref([]);
+
+// Watch modal state and prevent body scrolling when modal is open
+watch(showDeleteModal, (isOpen) => {
+  if (isOpen) {
+    // Prevent background scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+  } else {
+    // Allow scrolling again when modal is closed
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
+  }
+});
 
 // Use liveQuery to automatically update the list when DB changes
 const chatHistory = computed(() => chatHistoryData.value || []);
