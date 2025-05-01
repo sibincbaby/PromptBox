@@ -85,11 +85,9 @@
     
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" 
-         class="fixed inset-0 z-50 animate-fade-in"
-         style="touch-action: none; -webkit-overflow-scrolling: none;">
-      <div class="fixed inset-0 bg-black bg-opacity-50"></div>
-      <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg w-11/12 max-w-sm p-5 shadow-lg animate-slide-up"
-           @click.stop>
+         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 animate-fade-in"
+         style="overflow: hidden;">
+      <div class="bg-white rounded-lg w-11/12 max-w-sm p-5 shadow-lg animate-slide-up transform translate-y-0 my-auto mx-auto">
         <h3 class="text-lg font-medium mb-3">Delete Chat</h3>
         <p class="text-gray-600 mb-5">Are you sure you want to delete this chat? This action cannot be undone.</p>
         
@@ -109,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 // Replace direct DB import with historyStore
 import { useHistoryStore } from '@/store/modules/historyStore';
@@ -123,30 +121,6 @@ const error = ref(null);
 const showDeleteModal = ref(false);
 const chatToDelete = ref(null);
 const chatHistoryData = ref([]);
-const scrollPosition = ref(0); // Track scroll position
-
-// Watch modal state and prevent body scrolling when modal is open
-watch(showDeleteModal, (isOpen) => {
-  if (isOpen) {
-    // Store current scroll position
-    scrollPosition.value = window.scrollY;
-    
-    // Prevent background scrolling when modal is open
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.top = `-${scrollPosition.value}px`;
-  } else {
-    // Allow scrolling again when modal is closed
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.top = '';
-    
-    // Restore scroll position
-    window.scrollTo(0, scrollPosition.value);
-  }
-});
 
 // Use liveQuery to automatically update the list when DB changes
 const chatHistory = computed(() => chatHistoryData.value || []);
