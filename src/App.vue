@@ -1,4 +1,5 @@
 <template>
+  <Analytics />
   <div id="app" class="flex flex-col h-screen bg-surface-variant">
     <!-- Status Bar -->
     <header class="bg-surface shadow-sm z-10">
@@ -62,6 +63,8 @@
 </template>
 
 <script setup>
+import { Analytics } from '@vercel/analytics/vue';
+
 // Scripts for handling page transitions
 const beforePageLeave = (el) => {
   el.style.opacity = 0;
@@ -77,6 +80,7 @@ const onPageEnter = (el) => {
     el.style.transform = 'translateY(0)';
   }, 50);
 };
+
 </script>
 
 <style>
