@@ -22,12 +22,47 @@ export async function callGeminiApi(prompt) {
     // Get generation config from the settings store
     const generationConfig = settingsStore.getModelConfig();
 
-    // Simple text-only prompt for now
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    return text;
-
+    // Check if structured output is enabled and has a valid schema
+    const structuredOutputConfig = settingsStore.getStructuredOutputConfig();
+    
+    if (structuredOutputConfig) {
+      try {
+        // Make API call with structured output using the correct format from Gemini Studio
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            ...generationConfig,
+            responseMimeType: "application/json",
+            responseSchema: structuredOutputConfig.schema
+          }
+        });
+        
+        const response = await result.response;
+        const text = response.text();
+        
+        // Format the JSON response for better readability
+        try {
+          const jsonResponse = JSON.parse(text);
+          return JSON.stringify(jsonResponse, null, 2);
+        } catch (jsonError) {
+          // Return as is if it's not valid JSON
+          return text;
+        }
+      } catch (schemaError) {
+        console.error("Structured output error:", schemaError);
+        throw new Error(`Schema error: ${schemaError.message}. Please check your JSON schema.`);
+      }
+    } else {
+      // Simple text-only prompt without structured output
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: generationConfig
+      });
+      
+      const response = await result.response;
+      const text = response.text();
+      return text;
+    }
   } catch (error) {
     console.error("Gemini API Error:", error);
     // Provide more specific error messages if possible
@@ -35,13 +70,15 @@ export async function callGeminiApi(prompt) {
       throw new Error('Invalid API Key. Please check your key in the Settings page.');
     }
     if (error.message.includes('quota')) {
-        throw new Error('API quota exceeded. Please check your usage or try again later.');
+      throw new Error('API quota exceeded. Please check your usage or try again later.');
+    }
+    if (error.message.includes('Schema error')) {
+      throw error; // Pass through schema validation errors
     }
     throw new Error(error.message || 'An unknown error occurred while contacting the Gemini API.');
   }
 }
 
-// TODO: Implement function calling support
 // TODO: Implement streaming support
 // TODO: Implement chat history context passing
 

@@ -12,6 +12,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const maxOutputTokens = ref(2048)
   const theme = ref('light')
   const maxHistoryItems = ref(50)
+  const structuredOutput = ref(false)
+  const outputSchema = ref('{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}')
   const isLoading = ref(false)
   const error = ref(null)
   
@@ -67,6 +69,16 @@ export const useSettingsStore = defineStore('settings', () => {
     return saveSettingToDb('maxHistoryItems', value)
   }
   
+  function setStructuredOutput(value) {
+    structuredOutput.value = value
+    return saveSettingToDb('structuredOutput', value)
+  }
+  
+  function setOutputSchema(schema) {
+    outputSchema.value = schema
+    return saveSettingToDb('outputSchema', schema)
+  }
+  
   // Database operations
   async function loadAllSettings() {
     isLoading.value = true
@@ -100,6 +112,12 @@ export const useSettingsStore = defineStore('settings', () => {
             break
           case 'maxHistoryItems':
             maxHistoryItems.value = parseInt(item.value)
+            break
+          case 'structuredOutput':
+            structuredOutput.value = item.value === 'true' || item.value === true
+            break
+          case 'outputSchema':
+            outputSchema.value = item.value
             break
         }
       })
@@ -141,7 +159,9 @@ export const useSettingsStore = defineStore('settings', () => {
         { key: 'topP', value: topP.value },
         { key: 'maxOutputTokens', value: maxOutputTokens.value },
         { key: 'theme', value: theme.value },
-        { key: 'maxHistoryItems', value: maxHistoryItems.value }
+        { key: 'maxHistoryItems', value: maxHistoryItems.value },
+        { key: 'structuredOutput', value: structuredOutput.value },
+        { key: 'outputSchema', value: outputSchema.value }
       ]
       
       await db.settings.bulkPut(settingsToSave)
@@ -165,7 +185,9 @@ export const useSettingsStore = defineStore('settings', () => {
       topP: topP.value !== undefined ? topP.value : 1,
       maxOutputTokens: maxOutputTokens.value !== undefined ? maxOutputTokens.value : 2048,
       theme: theme.value || 'light',
-      maxHistoryItems: maxHistoryItems.value || 50
+      maxHistoryItems: maxHistoryItems.value || 50,
+      structuredOutput: structuredOutput.value !== undefined ? structuredOutput.value : false,
+      outputSchema: outputSchema.value || '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}'
     }
 
     for (const [key, value] of Object.entries(defaultSettings)) {
@@ -194,6 +216,20 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
   
+  // Get structured output configuration
+  function getStructuredOutputConfig() {
+    if (!structuredOutput.value) return null
+    
+    try {
+      // Parse and validate JSON schema
+      const schema = JSON.parse(outputSchema.value)
+      return { schema }
+    } catch (err) {
+      console.error("Invalid output schema JSON:", err)
+      return null
+    }
+  }
+  
   return {
     // State
     apiKey,
@@ -204,11 +240,14 @@ export const useSettingsStore = defineStore('settings', () => {
     maxOutputTokens,
     theme,
     maxHistoryItems,
+    structuredOutput,
+    outputSchema,
     isLoading,
     error,
     
     // Getters
     getModelConfig,
+    getStructuredOutputConfig,
     
     // Actions
     setApiKey,
@@ -219,6 +258,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setMaxOutputTokens,
     setTheme,
     setMaxHistoryItems,
+    setStructuredOutput,
+    setOutputSchema,
     loadAllSettings,
     saveSettingToDb,
     saveAllSettings,
@@ -237,7 +278,9 @@ export const useSettingsStore = defineStore('settings', () => {
       'topP',
       'maxOutputTokens',
       'theme', 
-      'maxHistoryItems'
+      'maxHistoryItems',
+      'structuredOutput',
+      'outputSchema'
     ]
   }
 })

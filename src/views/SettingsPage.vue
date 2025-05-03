@@ -136,6 +136,157 @@
         </div>
       </div>
 
+      <!-- Structured Output Settings -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+          <h3 class="text-base font-medium text-gray-800">Structured Output</h3>
+        </div>
+        
+        <!-- Structured Output Toggle -->
+        <div class="p-4 border-b border-gray-50">
+          <div class="flex items-center justify-between">
+            <label for="structuredOutput" class="block text-sm font-medium text-gray-700">Enable Structured Output</label>
+            <div class="relative inline-block w-10 align-middle select-none">
+              <input 
+                type="checkbox" 
+                id="structuredOutput" 
+                v-model="settings.structuredOutput"
+                class="sr-only"
+                @change="toggleStructuredOutput"
+              />
+              <label 
+                for="structuredOutput" 
+                class="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                :class="{'bg-indigo-600': settings.structuredOutput}"
+              >
+                <span 
+                  class="block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out"
+                  :class="{'translate-x-4': settings.structuredOutput}"
+                ></span>
+              </label>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-gray-500">Force Gemini to return structured JSON output based on a schema.</p>
+        </div>
+        
+        <!-- JSON Schema Editor -->
+        <div v-if="settings.structuredOutput" class="p-4 border-b border-gray-50">
+          <div class="flex justify-between items-center mb-2">
+            <label for="outputSchema" class="block text-sm font-medium text-gray-700">JSON Schema</label>
+            <button 
+              type="button" 
+              @click="formatSchema" 
+              class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-2 py-1 rounded transition-colors"
+            >
+              Format JSON
+            </button>
+          </div>
+          
+          <textarea 
+            id="outputSchema" 
+            v-model="settings.outputSchema" 
+            rows="8" 
+            class="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm font-mono"
+            :class="{'border-red-300 focus:ring-red-500/50': schemaError}"
+            placeholder='{
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "string"
+    }
+  }
+}'
+          ></textarea>
+          
+          <p class="mt-2 text-xs" :class="schemaError ? 'text-red-500' : 'text-gray-500'">
+            {{ schemaError || 'JSON Schema for structuring the model output. Must be valid JSON Schema format.' }}
+          </p>
+          
+          <!-- Schema Examples -->
+          <div class="mt-3">
+            <details class="text-sm">
+              <summary class="text-indigo-600 cursor-pointer">Show Schema Examples</summary>
+              <div class="mt-2 bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-700">Simple Result</h4>
+                  <button 
+                    type="button" 
+                    @click="applySchemaExample('simple')" 
+                    class="mt-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded transition-colors"
+                  >
+                    Apply
+                  </button>
+                  <pre class="mt-1 text-xs text-gray-600 overflow-x-auto">{
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "string"
+    }
+  }
+}</pre>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-700">Structured Summary</h4>
+                  <button 
+                    type="button" 
+                    @click="applySchemaExample('summary')" 
+                    class="mt-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded transition-colors"
+                  >
+                    Apply
+                  </button>
+                  <pre class="mt-1 text-xs text-gray-600 overflow-x-auto">{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Brief summary of the response"
+    },
+    "points": {
+      "type": "array",
+      "description": "Key points from the response",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}</pre>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-700">Q&A Format</h4>
+                  <button 
+                    type="button" 
+                    @click="applySchemaExample('qa')" 
+                    class="mt-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded transition-colors"
+                  >
+                    Apply
+                  </button>
+                  <pre class="mt-1 text-xs text-gray-600 overflow-x-auto">{
+  "type": "object",
+  "properties": {
+    "answer": {
+      "type": "string",
+      "description": "Direct answer to the question"
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Explanation or context for the answer"
+    },
+    "sources": {
+      "type": "array",
+      "description": "Possible sources for this information",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}</pre>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
       <!-- Action Buttons -->      
       <div class="flex justify-between pt-3">
         <button type="button" @click="loadSettings" 
@@ -172,7 +323,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { db } from '@/db/db'; // Updated import using @ alias
 
 // Initialize reactive settings object with default values
@@ -183,12 +334,15 @@ const settings = reactive({
   temperature: 0.9,
   topP: 1,
   maxOutputTokens: 2048,
+  structuredOutput: false,
+  outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}',
 });
 
 const isLoading = ref(true);
 const error = ref(null);
 const saveStatus = ref(null); // { type: 'success' | 'error', message: string }
 const showApiKey = ref(false);
+const schemaError = ref(null);
 
 // Helper functions for token adjustment
 const incrementTokens = () => {
@@ -211,11 +365,91 @@ const decrementTokens = () => {
   }
 };
 
+// Format JSON Schema with proper indentation
+const formatSchema = () => {
+  try {
+    const parsed = JSON.parse(settings.outputSchema);
+    settings.outputSchema = JSON.stringify(parsed, null, 2);
+    schemaError.value = null;
+    
+    // Add haptic feedback
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(20);
+    }
+  } catch (err) {
+    schemaError.value = "Invalid JSON: " + err.message;
+    
+    // Add error haptic feedback
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(100);
+    }
+  }
+};
+
+// Toggle structured output option
+const toggleStructuredOutput = () => {
+  if (settings.structuredOutput) {
+    // Validate the schema when enabled
+    validateSchema();
+  } else {
+    // Clear any existing errors when disabled
+    schemaError.value = null;
+  }
+  
+  // Add haptic feedback
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(20);
+  }
+};
+
+// Validate JSON Schema format
+const validateSchema = () => {
+  try {
+    JSON.parse(settings.outputSchema);
+    schemaError.value = null;
+    return true;
+  } catch (err) {
+    schemaError.value = "Invalid JSON: " + err.message;
+    return false;
+  }
+};
+
+// Apply schema examples
+const applySchemaExample = (type) => {
+  switch (type) {
+    case 'simple':
+      settings.outputSchema = '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}';
+      break;
+    case 'summary':
+      settings.outputSchema = '{\n  "type": "object",\n  "properties": {\n    "summary": {\n      "type": "string",\n      "description": "Brief summary of the response"\n    },\n    "points": {\n      "type": "array",\n      "description": "Key points from the response",\n      "items": {\n        "type": "string"\n      }\n    }\n  }\n}';
+      break;
+    case 'qa':
+      settings.outputSchema = '{\n  "type": "object",\n  "properties": {\n    "answer": {\n      "type": "string",\n      "description": "Direct answer to the question"\n    },\n    "explanation": {\n      "type": "string",\n      "description": "Explanation or context for the answer"\n    },\n    "sources": {\n      "type": "array",\n      "description": "Possible sources for this information",\n      "items": {\n        "type": "string"\n      }\n    }\n  }\n}';
+      break;
+  }
+  
+  // Clear any errors and add haptic feedback
+  schemaError.value = null;
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate([20, 20]);
+  }
+};
+
+// Watch for schema changes to validate in real-time
+watch(() => settings.outputSchema, (newSchema) => {
+  if (settings.structuredOutput) {
+    // Only validate if structured output is enabled
+    validateSchema();
+  }
+});
+
 // Load settings from Dexie when component mounts
 const loadSettings = async () => {
   isLoading.value = true;
   error.value = null;
   saveStatus.value = null;
+  schemaError.value = null;
+  
   try {
     const storedSettings = await db.settings.toArray();
     // Use a temporary object to avoid reactivity issues during loading
@@ -227,9 +461,11 @@ const loadSettings = async () => {
     // Update the reactive object with loaded values or defaults
     for (const key in settings) {
       if (loadedSettings.hasOwnProperty(key)) {
-        // Ensure correct type (especially for numbers)
+        // Ensure correct type (especially for numbers and booleans)
         if (typeof settings[key] === 'number') {
           settings[key] = parseFloat(loadedSettings[key]);
+        } else if (typeof settings[key] === 'boolean') {
+          settings[key] = loadedSettings[key] === 'true' || loadedSettings[key] === true;
         } else {
           settings[key] = loadedSettings[key];
         }
@@ -238,6 +474,12 @@ const loadSettings = async () => {
         // This handles cases where new settings are added to the component
       }
     }
+    
+    // Validate schema if structured output is enabled
+    if (settings.structuredOutput) {
+      validateSchema();
+    }
+    
     console.log("Settings loaded:", JSON.parse(JSON.stringify(settings)));
   } catch (err) {
     console.error("Failed to load settings:", err);
@@ -255,6 +497,21 @@ onMounted(() => {
 const saveSettings = async () => {
   isLoading.value = true; // Show loading/saving indicator potentially
   saveStatus.value = null;
+  
+  // Validate schema if structured output is enabled
+  if (settings.structuredOutput && !validateSchema()) {
+    isLoading.value = false;
+    saveStatus.value = { type: 'error', message: 'Invalid JSON Schema' };
+    
+    // Add error haptic feedback
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(100);
+    }
+    
+    // Clear error message after delay
+    setTimeout(() => { saveStatus.value = null; }, 3000);
+    return;
+  }
   
   try {
     const settingsToSave = Object.entries(settings).map(([key, value]) => ({ key, value }));
@@ -310,6 +567,15 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Toggle switch styling */
+input[type="checkbox"]:checked + label {
+  @apply bg-indigo-600;
+}
+
+input[type="checkbox"]:checked + label span {
+  transform: translateX(100%);
 }
 
 /* Animations for toast notifications */

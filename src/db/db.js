@@ -18,6 +18,8 @@ async function initializeDefaultSettings() {
     temperature: 0.9,
     topP: 1,
     maxOutputTokens: 2048,
+    structuredOutput: false,
+    outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}',
   };
 
   for (const [key, value] of Object.entries(defaultSettings)) {
