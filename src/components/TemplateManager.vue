@@ -2,28 +2,66 @@
   <div class="template-manager">
     <!-- Template Selector (used in HomePage) -->
     <div v-if="mode === 'selector'" class="template-selector">
-      <div class="relative template-dropdown">
-        <select 
-          v-model="selectedTemplateId" 
-          @change="handleTemplateChange"
-          :disabled="!hasTemplates"
-          class="w-full p-3 pr-10 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
-        >
-          <option value="">{{ hasTemplates ? 'Select a template' : 'No templates available' }}</option>
-          <option 
-            v-for="template in templates" 
-            :key="template.id" 
-            :value="template.id"
-          >
-            {{ template.name }}
-          </option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+      <Combobox v-model="selectedTemplate" as="div" class="relative">
+        <div class="relative w-full">
+          <ComboboxInput
+            :displayValue="(template) => template ? template.name : ''"
+            placeholder="Select or search template"
+            @change="query = $event.target.value"
+            class="w-full p-3 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
+            :disabled="!hasTemplates"
+          />
+          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </ComboboxButton>
         </div>
-      </div>
+        
+        <Transition
+          enter-active-class="transition duration-100 ease-out"
+          enter-from-class="transform scale-95 opacity-0"
+          enter-to-class="transform scale-100 opacity-100"
+          leave-active-class="transition duration-75 ease-in"
+          leave-from-class="transform scale-100 opacity-100"
+          leave-to-class="transform scale-95 opacity-0"
+        >
+          <ComboboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div v-if="filteredTemplates.length === 0 && query !== ''" class="relative cursor-default select-none py-2 px-4 text-gray-500">
+              No templates found.
+            </div>
+            
+            <ComboboxOption
+              v-for="template in filteredTemplates"
+              :key="template.id"
+              :value="template"
+              v-slot="{ selected, active }"
+              as="template"
+            >
+              <li 
+                class="relative cursor-default select-none py-2 px-4"
+                :class="{ 
+                  'bg-indigo-600 text-white': active,
+                  'text-gray-900': !active
+                }"
+              >
+                <span class="block truncate" :class="{ 'font-medium': selected, 'font-normal': !selected }">
+                  {{ template.name }}
+                </span>
+                <span 
+                  v-if="selected"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3"
+                  :class="{ 'text-white': active, 'text-indigo-600': !active }"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </li>
+            </ComboboxOption>
+          </ComboboxOptions>
+        </Transition>
+      </Combobox>
     </div>
 
     <!-- Template Manager (used in SettingsPage) -->
@@ -111,8 +149,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSettingsStore } from '@/store/modules/settingsStore';
+import { Combobox, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/vue';
 
 const props = defineProps({
   // 'selector' for dropdown in HomePage, 'manager' for full management in SettingsPage
@@ -126,6 +165,8 @@ const props = defineProps({
 const settingsStore = useSettingsStore();
 const newTemplateName = ref('');
 const selectedTemplateId = ref('');
+const selectedTemplate = ref(null);
+const query = ref('');
 
 // Computed properties
 const templates = computed(() => settingsStore.templates);
@@ -133,11 +174,27 @@ const currentTemplateId = computed(() => settingsStore.currentTemplateId);
 const currentTemplateName = computed(() => settingsStore.currentTemplateName);
 const hasTemplates = computed(() => templates.value.length > 0);
 
+const filteredTemplates = computed(() => {
+  if (query.value === '') return templates.value;
+  return templates.value.filter((template) => 
+    template.name.toLowerCase().includes(query.value.toLowerCase())
+  );
+});
+
 // Set selected template to match current template
 onMounted(async () => {
   await settingsStore.loadTemplates();
   if (currentTemplateId.value) {
     selectedTemplateId.value = currentTemplateId.value;
+    selectedTemplate.value = templates.value.find(t => t.id.toString() === currentTemplateId.value.toString());
+  }
+});
+
+// Watch for changes in the selected template
+watch(selectedTemplate, async (newTemplate) => {
+  if (newTemplate) {
+    selectedTemplateId.value = newTemplate.id.toString();
+    await settingsStore.loadTemplate(parseInt(newTemplate.id));
   }
 });
 
@@ -167,6 +224,7 @@ async function saveAsTemplate() {
 async function loadTemplate(templateId) {
   await settingsStore.loadTemplate(templateId);
   selectedTemplateId.value = templateId.toString();
+  selectedTemplate.value = templates.value.find(t => t.id.toString() === templateId.toString());
   
   // Add haptic feedback if available
   if (window.navigator && window.navigator.vibrate) {
