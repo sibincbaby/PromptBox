@@ -17,6 +17,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const isLoading = ref(false)
   const error = ref(null)
   
+  // Template management
+  const templates = ref([])
+  const currentTemplateId = ref(null)
+  const currentTemplateName = ref('')
+  
   // Apply theme when it changes using watch
   watch(theme, (newTheme) => {
     applyTheme(newTheme)
@@ -79,6 +84,157 @@ export const useSettingsStore = defineStore('settings', () => {
     return saveSettingToDb('outputSchema', schema)
   }
   
+  // Template management functions
+  async function loadTemplates() {
+    try {
+      templates.value = await db.templates.toArray()
+      
+      // Load current template ID
+      const currentTemplateIdSetting = await db.settings.get('currentTemplateId')
+      if (currentTemplateIdSetting) {
+        currentTemplateId.value = currentTemplateIdSetting.value
+        
+        // If we have a valid template ID, find its name
+        if (currentTemplateId.value) {
+          const template = templates.value.find(t => t.id === parseInt(currentTemplateId.value))
+          if (template) {
+            currentTemplateName.value = template.name
+          } else {
+            currentTemplateName.value = ''
+          }
+        }
+      }
+      
+      return templates.value
+    } catch (err) {
+      console.error("Failed to load templates:", err)
+      error.value = err.message || 'Failed to load templates'
+      return []
+    }
+  }
+  
+  async function saveAsTemplate(name) {
+    if (!name) {
+      error.value = 'Template name is required'
+      return null
+    }
+    
+    try {
+      // Create template config object
+      const templateConfig = {
+        modelName: modelName.value,
+        systemPrompt: systemPrompt.value,
+        temperature: temperature.value,
+        topP: topP.value,
+        maxOutputTokens: maxOutputTokens.value,
+        structuredOutput: structuredOutput.value,
+        outputSchema: outputSchema.value
+      }
+      
+      // Check if template with this name already exists
+      const existingTemplate = await db.templates.where('name').equals(name).first()
+      
+      let templateId
+      if (existingTemplate) {
+        // Update existing template
+        templateId = existingTemplate.id
+        await db.templates.update(templateId, {
+          name,
+          config: templateConfig,
+          updatedAt: new Date()
+        })
+      } else {
+        // Create new template
+        templateId = await db.templates.add({
+          name,
+          config: templateConfig,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+      }
+      
+      // Refresh templates list
+      await loadTemplates()
+      
+      // Set current template
+      await setCurrentTemplate(templateId)
+      
+      return templateId
+    } catch (err) {
+      console.error("Failed to save template:", err)
+      error.value = err.message || 'Failed to save template'
+      return null
+    }
+  }
+  
+  async function deleteTemplate(templateId) {
+    try {
+      await db.templates.delete(templateId)
+      
+      // If we deleted the current template, clear current template
+      if (currentTemplateId.value === templateId.toString()) {
+        await setCurrentTemplate(null)
+      }
+      
+      // Refresh templates list
+      await loadTemplates()
+      
+      return true
+    } catch (err) {
+      console.error("Failed to delete template:", err)
+      error.value = err.message || 'Failed to delete template'
+      return false
+    }
+  }
+  
+  async function loadTemplate(templateId) {
+    try {
+      const template = await db.templates.get(templateId)
+      
+      if (!template) {
+        throw new Error('Template not found')
+      }
+      
+      // Apply template settings
+      const config = template.config
+      
+      modelName.value = config.modelName
+      systemPrompt.value = config.systemPrompt
+      temperature.value = config.temperature
+      topP.value = config.topP
+      maxOutputTokens.value = config.maxOutputTokens
+      structuredOutput.value = config.structuredOutput
+      outputSchema.value = config.outputSchema
+      
+      // Save all settings to DB
+      await saveAllSettings()
+      
+      // Set current template
+      await setCurrentTemplate(templateId)
+      
+      return true
+    } catch (err) {
+      console.error("Failed to load template:", err)
+      error.value = err.message || 'Failed to load template'
+      return false
+    }
+  }
+  
+  async function setCurrentTemplate(templateId) {
+    currentTemplateId.value = templateId
+    
+    // Update template name if we have a valid template
+    if (templateId) {
+      const template = templates.value.find(t => t.id === parseInt(templateId))
+      currentTemplateName.value = template ? template.name : ''
+    } else {
+      currentTemplateName.value = ''
+    }
+    
+    // Save current template ID to settings
+    return saveSettingToDb('currentTemplateId', templateId)
+  }
+  
   // Database operations
   async function loadAllSettings() {
     isLoading.value = true
@@ -119,11 +275,17 @@ export const useSettingsStore = defineStore('settings', () => {
           case 'outputSchema':
             outputSchema.value = item.value
             break
+          case 'currentTemplateId':
+            currentTemplateId.value = item.value
+            break
         }
       })
       
       // Initialize missing settings
       await initializeDefaultSettings()
+      
+      // Load templates
+      await loadTemplates()
       
       return true
     } catch (err) {
@@ -161,7 +323,8 @@ export const useSettingsStore = defineStore('settings', () => {
         { key: 'theme', value: theme.value },
         { key: 'maxHistoryItems', value: maxHistoryItems.value },
         { key: 'structuredOutput', value: structuredOutput.value },
-        { key: 'outputSchema', value: outputSchema.value }
+        { key: 'outputSchema', value: outputSchema.value },
+        { key: 'currentTemplateId', value: currentTemplateId.value }
       ]
       
       await db.settings.bulkPut(settingsToSave)
@@ -187,7 +350,8 @@ export const useSettingsStore = defineStore('settings', () => {
       theme: theme.value || 'light',
       maxHistoryItems: maxHistoryItems.value || 50,
       structuredOutput: structuredOutput.value !== undefined ? structuredOutput.value : false,
-      outputSchema: outputSchema.value || '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}'
+      outputSchema: outputSchema.value || '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}',
+      currentTemplateId: currentTemplateId.value || null
     }
 
     for (const [key, value] of Object.entries(defaultSettings)) {
@@ -245,6 +409,11 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading,
     error,
     
+    // Template state
+    templates,
+    currentTemplateId,
+    currentTemplateName,
+    
     // Getters
     getModelConfig,
     getStructuredOutputConfig,
@@ -263,7 +432,14 @@ export const useSettingsStore = defineStore('settings', () => {
     loadAllSettings,
     saveSettingToDb,
     saveAllSettings,
-    initializeSettings
+    initializeSettings,
+    
+    // Template management
+    loadTemplates,
+    saveAsTemplate,
+    loadTemplate,
+    deleteTemplate,
+    setCurrentTemplate
   }
 }, {
   // Persistence configuration
@@ -280,7 +456,8 @@ export const useSettingsStore = defineStore('settings', () => {
       'theme', 
       'maxHistoryItems',
       'structuredOutput',
-      'outputSchema'
+      'outputSchema',
+      'currentTemplateId'
     ]
   }
 })

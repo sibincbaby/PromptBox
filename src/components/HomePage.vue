@@ -5,6 +5,11 @@
       <div class="flex flex-col space-y-4 mb-2">
         <!-- Empty State -->
         <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-48 animate-fade-in">
+          <!-- Template Selector -->
+          <div class="mb-4 w-full max-w-md">
+            <TemplateManager mode="selector" />
+          </div>
+          
           <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -71,6 +76,13 @@
 
     <!-- Input Area -->
     <div class="input-area p-3 bg-white border-t border-gray-100 shadow-inner">
+      <!-- Current Template Indicator -->
+      <div v-if="currentTemplateName" class="flex justify-center items-center mb-2">
+        <span class="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
+          {{ currentTemplateName }}
+        </span>
+      </div>
+      
       <div class="flex items-end space-x-2 bg-gray-50 rounded-2xl px-3 py-2">
         <button @click="startNewChat" 
                 class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-indigo-600 focus:outline-none">
@@ -112,15 +124,18 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch } from 'vue';
+import { ref, nextTick, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { callGeminiApi } from '@/services/geminiService';
 // Remove direct DB import and import stores instead
 import { useHistoryStore } from '@/store/modules/historyStore';
+import { useSettingsStore } from '@/store/modules/settingsStore';
+import TemplateManager from '@/components/TemplateManager.vue';
 
 const route = useRoute();
 const router = useRouter();
 const historyStore = useHistoryStore(); // Initialize history store
+const settingsStore = useSettingsStore(); // Initialize settings store
 
 const promptInput = ref('');
 const chatMessages = ref([]); // { sender: 'user' | 'model', text: '...' }
@@ -129,6 +144,14 @@ const error = ref(null);
 const textareaRef = ref(null); // Ref for the textarea element
 const chatAreaRef = ref(null); // Ref for the chat area div
 const currentChatId = ref(null); // To track the current chat session ID in the DB
+
+// Get current template name
+const currentTemplateName = computed(() => settingsStore.currentTemplateName);
+
+// Load templates on mount
+onMounted(async () => {
+  await settingsStore.loadTemplates();
+});
 
 // Function to scroll chat area to bottom with smooth animation
 const scrollToBottom = () => {
@@ -206,7 +229,9 @@ const saveChatSession = async () => {
   const chatData = {
     messages: JSON.parse(JSON.stringify(chatMessages.value)), // Deep copy
     timestamp: new Date(),
-    // TODO: Store settings used for this chat session
+    // Store template ID with the chat
+    templateId: settingsStore.currentTemplateId,
+    templateName: settingsStore.currentTemplateName
   };
 
   try {

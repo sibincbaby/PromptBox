@@ -24,6 +24,16 @@
     </div>
 
     <form v-else @submit.prevent="saveSettings" class="space-y-5">
+      <!-- Template Manager -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+          <h3 class="text-base font-medium text-gray-800">Configuration Templates</h3>
+        </div>
+        <div class="p-4">
+          <TemplateManager mode="manager" />
+        </div>
+      </div>
+      
       <!-- Settings Sections -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="p-4 border-b border-gray-100">
@@ -325,6 +335,11 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue';
 import { db } from '@/db/db'; // Updated import using @ alias
+import TemplateManager from '@/components/TemplateManager.vue';
+import { useSettingsStore } from '@/store/modules/settingsStore';
+
+// Use the settings store
+const settingsStore = useSettingsStore();
 
 // Initialize reactive settings object with default values
 const settings = reactive({
@@ -451,29 +466,15 @@ const loadSettings = async () => {
   schemaError.value = null;
   
   try {
-    const storedSettings = await db.settings.toArray();
-    // Use a temporary object to avoid reactivity issues during loading
-    const loadedSettings = {};
-    storedSettings.forEach(item => {
-      loadedSettings[item.key] = item.value;
-    });
-
-    // Update the reactive object with loaded values or defaults
-    for (const key in settings) {
-      if (loadedSettings.hasOwnProperty(key)) {
-        // Ensure correct type (especially for numbers and booleans)
-        if (typeof settings[key] === 'number') {
-          settings[key] = parseFloat(loadedSettings[key]);
-        } else if (typeof settings[key] === 'boolean') {
-          settings[key] = loadedSettings[key] === 'true' || loadedSettings[key] === true;
-        } else {
-          settings[key] = loadedSettings[key];
-        }
-      } else {
-        // If a setting exists in reactive object but not in DB, keep the default
-        // This handles cases where new settings are added to the component
-      }
-    }
+    // Load settings from the store instead of directly from DB
+    settings.apiKey = settingsStore.apiKey;
+    settings.modelName = settingsStore.modelName;
+    settings.systemPrompt = settingsStore.systemPrompt;
+    settings.temperature = settingsStore.temperature;
+    settings.topP = settingsStore.topP;
+    settings.maxOutputTokens = settingsStore.maxOutputTokens;
+    settings.structuredOutput = settingsStore.structuredOutput;
+    settings.outputSchema = settingsStore.outputSchema;
     
     // Validate schema if structured output is enabled
     if (settings.structuredOutput) {
@@ -493,7 +494,7 @@ onMounted(() => {
   loadSettings();
 });
 
-// Save settings to Dexie with animation feedback
+// Save settings to the store
 const saveSettings = async () => {
   isLoading.value = true; // Show loading/saving indicator potentially
   saveStatus.value = null;
@@ -514,9 +515,15 @@ const saveSettings = async () => {
   }
   
   try {
-    const settingsToSave = Object.entries(settings).map(([key, value]) => ({ key, value }));
-    await db.settings.bulkPut(settingsToSave);
-    console.log("Settings saved:", settingsToSave);
+    // Save settings to the store
+    await settingsStore.setApiKey(settings.apiKey);
+    await settingsStore.setModelName(settings.modelName);
+    await settingsStore.setSystemPrompt(settings.systemPrompt);
+    await settingsStore.setTemperature(settings.temperature);
+    await settingsStore.setTopP(settings.topP);
+    await settingsStore.setMaxOutputTokens(settings.maxOutputTokens);
+    await settingsStore.setStructuredOutput(settings.structuredOutput);
+    await settingsStore.setOutputSchema(settings.outputSchema);
     
     // Add haptic feedback
     if (window.navigator && window.navigator.vibrate) {

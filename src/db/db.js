@@ -2,10 +2,12 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('GeminiPromptTesterDB');
 
-db.version(1).stores({
+db.version(2).stores({
   settings: 'key', // Simple key-value store for settings like API key, modelName, etc.
   chats: '++id, timestamp', // Auto-incrementing ID, index on timestamp. Store chat messages array here.
   // Schema for chats store: { id?, timestamp: Date, messages: [{sender: string, text: string}], settings?: object }
+  templates: '++id, name', // Store named configuration templates
+  // Schema for templates: { id?, name: string, config: {modelName, systemPrompt, temperature, etc.} }
 });
 
 // Example: Initialize default settings if they don't exist
@@ -20,6 +22,7 @@ async function initializeDefaultSettings() {
     maxOutputTokens: 2048,
     structuredOutput: false,
     outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}',
+    currentTemplateId: null, // Track the currently active template
   };
 
   for (const [key, value] of Object.entries(defaultSettings)) {
