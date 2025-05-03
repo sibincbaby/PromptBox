@@ -2,12 +2,12 @@
   <div class="template-manager">
     <!-- Template Selector (used in HomePage) -->
     <div v-if="mode === 'selector'" class="template-selector">
-      <div class="template-dropdown">
+      <div class="relative template-dropdown">
         <select 
           v-model="selectedTemplateId" 
           @change="handleTemplateChange"
           :disabled="!hasTemplates"
-          class="template-select"
+          class="w-full p-3 pr-10 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
         >
           <option value="">{{ hasTemplates ? 'Select a template' : 'No templates available' }}</option>
           <option 
@@ -18,61 +18,93 @@
             {{ template.name }}
           </option>
         </select>
-        <div class="template-indicator" v-if="currentTemplateName">
-          <span class="badge">{{ currentTemplateName }}</span>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </div>
     </div>
 
     <!-- Template Manager (used in SettingsPage) -->
     <div v-else-if="mode === 'manager'" class="template-manager-full">
-      <div class="template-manager-header">
-        <h3>Configuration Templates</h3>
-        <p>Save your current configuration as a template to quickly reuse it later.</p>
+      <div class="template-manager-header mb-4">
+        <h3 class="text-base font-medium text-gray-800 mb-1">Configuration Templates</h3>
+        <p class="text-sm text-gray-500">Save your current configuration as a template to quickly reuse it later.</p>
       </div>
       
-      <div class="save-template-form">
-        <label for="templateName">Template Name:</label>
-        <div class="template-name-input">
+      <div class="save-template-form mb-5">
+        <label for="templateName" class="block text-sm font-medium text-gray-700 mb-2">Template Name:</label>
+        <div class="flex gap-2">
           <input 
             id="templateName" 
             v-model="newTemplateName" 
             type="text" 
             placeholder="e.g., My Expense Manager"
+            class="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
           />
           <button 
             @click="saveAsTemplate" 
             :disabled="!newTemplateName" 
-            class="btn-save"
+            class="px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed disabled:text-gray-500 active:scale-95"
           >
-            Save Current Configuration
+            Save Template
           </button>
         </div>
       </div>
       
-      <div class="saved-templates" v-if="hasTemplates">
-        <h4>Saved Templates</h4>
-        <div class="templates-list">
+      <div v-if="hasTemplates" class="saved-templates">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">Saved Templates</h4>
+        <div class="templates-list space-y-3">
           <div 
             v-for="template in templates" 
             :key="template.id" 
-            class="template-item"
-            :class="{ 'active': isActiveTemplate(template.id) }"
+            class="template-item bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md"
+            :class="{ 'border-indigo-200 bg-indigo-50/30': isActiveTemplate(template.id) }"
           >
-            <div class="template-info">
-              <span class="template-name">{{ template.name }}</span>
-              <span v-if="isActiveTemplate(template.id)" class="active-badge">Active</span>
-            </div>
-            <div class="template-actions">
-              <button @click="loadTemplate(template.id)" class="btn-load">Load</button>
-              <button @click="deleteTemplate(template.id)" class="btn-delete">Delete</button>
+            <div class="p-4">
+              <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center">
+                  <span class="font-medium text-gray-800">{{ template.name }}</span>
+                  <span v-if="isActiveTemplate(template.id)" class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">
+                    Active
+                  </span>
+                </div>
+              </div>
+              
+              <div class="flex border-t border-gray-100 pt-3 -mx-4 -mb-4">
+                <button 
+                  @click="loadTemplate(template.id)" 
+                  class="flex-1 py-2 text-sm text-indigo-600 flex items-center justify-center hover:bg-indigo-50 transition-colors active:scale-95"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Load
+                </button>
+                <div class="w-px h-10 bg-gray-100 self-center"></div>
+                <button 
+                  @click="deleteTemplate(template.id)" 
+                  class="flex-1 py-2 text-sm text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors active:scale-95"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
       
-      <div class="no-templates" v-else>
-        <p>You don't have any saved templates yet.</p>
+      <div v-else class="py-8 flex flex-col items-center justify-center bg-gray-50 rounded-lg border border-gray-100 text-center animate-fade-in">
+        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+          </svg>
+        </div>
+        <p class="text-gray-500">You don't have any saved templates yet.</p>
       </div>
     </div>
   </div>
@@ -124,158 +156,53 @@ async function saveAsTemplate() {
   if (newTemplateName.value) {
     await settingsStore.saveAsTemplate(newTemplateName.value);
     newTemplateName.value = ''; // Clear input after saving
+    
+    // Add haptic feedback if available
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate([30, 30, 30]);
+    }
   }
 }
 
 async function loadTemplate(templateId) {
   await settingsStore.loadTemplate(templateId);
   selectedTemplateId.value = templateId.toString();
+  
+  // Add haptic feedback if available
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(20);
+  }
 }
 
 async function deleteTemplate(templateId) {
   if (confirm('Are you sure you want to delete this template?')) {
     await settingsStore.deleteTemplate(templateId);
+    
+    // Add haptic feedback if available
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate([20, 30, 20]);
+    }
   }
 }
 </script>
 
 <style scoped>
-.template-manager {
-  margin-bottom: 1rem;
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.template-selector {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-.template-dropdown {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-.template-select {
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  min-width: 200px;
-}
-
-.template-indicator {
-  display: flex;
-  align-items: center;
-}
-
-.badge {
-  background-color: #4caf50;
-  color: white;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.template-manager-full {
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.template-manager-header {
-  margin-bottom: 1rem;
-}
-
-.template-manager-header h3 {
-  margin-bottom: 0.5rem;
-}
-
-.save-template-form {
-  margin-bottom: 1.5rem;
-}
-
-.template-name-input {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.template-name-input input {
-  flex: 1;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.btn-save {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-}
-
-.btn-save:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.templates-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.template-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  border: 1px solid #eee;
-  border-radius: 4px;
-}
-
-.template-item.active {
-  border-color: #4caf50;
-  background-color: rgba(76, 175, 80, 0.1);
-}
-
-.template-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.active-badge {
-  background-color: #4caf50;
-  color: white;
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-}
-
-.template-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-load {
-  background-color: #2196f3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background-color: #f44336;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 </style>
