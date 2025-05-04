@@ -162,6 +162,8 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(['template-changed']);
+
 const settingsStore = useSettingsStore();
 const newTemplateName = ref('');
 const selectedTemplateId = ref('');
@@ -195,6 +197,8 @@ watch(selectedTemplate, async (newTemplate) => {
   if (newTemplate) {
     selectedTemplateId.value = newTemplate.id.toString();
     await settingsStore.loadTemplate(parseInt(newTemplate.id));
+    // Emit event to notify parent component that template has changed
+    emit('template-changed', newTemplate.id);
   }
 });
 
@@ -206,6 +210,8 @@ function isActiveTemplate(templateId) {
 async function handleTemplateChange() {
   if (selectedTemplateId.value) {
     await settingsStore.loadTemplate(parseInt(selectedTemplateId.value));
+    // Emit event after template is loaded
+    emit('template-changed', parseInt(selectedTemplateId.value));
   }
 }
 
@@ -225,6 +231,9 @@ async function loadTemplate(templateId) {
   await settingsStore.loadTemplate(templateId);
   selectedTemplateId.value = templateId.toString();
   selectedTemplate.value = templates.value.find(t => t.id.toString() === templateId.toString());
+  
+  // Emit event after template is loaded
+  emit('template-changed', templateId);
   
   // Add haptic feedback if available
   if (window.navigator && window.navigator.vibrate) {

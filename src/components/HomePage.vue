@@ -7,7 +7,7 @@
         <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-48 animate-fade-in">
           <!-- Template Selector -->
           <div class="mb-4 w-full max-w-md">
-            <TemplateManager mode="selector" />
+            <TemplateManager mode="selector" @template-changed="handleTemplateChanged" />
           </div>
           
           <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
@@ -152,6 +152,34 @@ const currentTemplateName = computed(() => settingsStore.currentTemplateName);
 onMounted(async () => {
   await settingsStore.loadTemplates();
 });
+
+// Handle template changed event from TemplateManager
+const handleTemplateChanged = async (templateId) => {
+  console.log('Template changed to ID:', templateId);
+  
+  // Refresh settings after template change
+  await settingsStore.loadAllSettings();
+  
+  // Add haptic feedback to confirm the template change
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate([20, 30, 20]);
+  }
+  
+  // Show a notification to confirm template change
+  const templateName = settingsStore.currentTemplateName;
+  if (templateName) {
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full text-sm animate-fade-in';
+    notification.textContent = `Template changed to: ${templateName}`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      notification.style.transition = 'opacity 0.5s ease';
+      setTimeout(() => document.body.removeChild(notification), 500);
+    }, 1500);
+  }
+};
 
 // Function to scroll chat area to bottom with smooth animation
 const scrollToBottom = () => {

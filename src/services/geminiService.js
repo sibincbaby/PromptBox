@@ -12,6 +12,9 @@ export async function callGeminiApi(prompt) {
   }
 
   try {
+    // Log the current template being used
+    console.log('Using template:', settingsStore.currentTemplateName || 'Default');
+    
     const genAI = new GoogleGenerativeAI(settingsStore.apiKey);
     const model = genAI.getGenerativeModel({ 
       model: settingsStore.modelName,
@@ -21,6 +24,7 @@ export async function callGeminiApi(prompt) {
 
     // Get generation config from the settings store
     const generationConfig = settingsStore.getModelConfig();
+    console.log('Current generation config:', JSON.stringify(generationConfig));
 
     // Check if structured output is enabled and has a valid schema
     const structuredOutputConfig = settingsStore.getStructuredOutputConfig();
