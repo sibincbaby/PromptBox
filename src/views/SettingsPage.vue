@@ -66,9 +66,9 @@
           <div class="relative">
             <select id="modelName" v-model="settings.modelName" 
                     class="w-full p-3 border border-gray-200 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow pr-10 text-sm">
-              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-              <option value="gemini-pro">gemini-pro</option>
-              <!-- Add other models as needed -->
+              <option v-for="model in availableModels" :key="model.value" :value="model.value">
+                {{ model.label }}
+              </option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,6 +352,14 @@ const settings = reactive({
   structuredOutput: false,
   outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}',
 });
+
+// Available model options
+const availableModels = [
+  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' }
+];
 
 const isLoading = ref(true);
 const error = ref(null);
