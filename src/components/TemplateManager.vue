@@ -53,6 +53,7 @@
                   'bg-indigo-600 text-white': active,
                   'text-gray-900': !active
                 }"
+                @click="isOpen = false"
               >
                 <span class="block truncate" :class="{ 'font-medium': selected, 'font-normal': !selected }">
                   {{ template.name }}

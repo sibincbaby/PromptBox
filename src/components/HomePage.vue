@@ -15,7 +15,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
           </div>
-          <p class="text-gray-500 text-center">Start a new conversation with Gemini</p>
+          <p class="text-gray-500 text-center">Start a new conversation</p>
         </div>
 
         <!-- Messages -->
@@ -94,7 +94,7 @@
         <textarea ref="textareaRef" v-model="promptInput" 
                 @input="autoResizeTextarea" 
                 @keydown.enter.prevent="handleEnterKey" 
-                placeholder="Message Gemini..." 
+                placeholder="Ask anything..." 
                 class="flex-grow bg-transparent text-sm p-2 max-h-32 min-h-[2.5rem] focus:outline-none resize-none" 
                 rows="1"></textarea>
       
