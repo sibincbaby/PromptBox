@@ -14,7 +14,7 @@
         <button 
           @click="saveTemplate" 
           :disabled="!isFormValid"
-          class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors active:scale-95">
+          class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
           {{ mode === 'edit' ? 'Update' : 'Create' }}
         </button>
       </div>
@@ -267,14 +267,14 @@ onMounted(async () => {
     if (props.mode === 'create') {
       await settingsStore.loadAllSettings();
       templateConfig.value = {
-        name: '',
-        modelName: settingsStore.modelName,
-        systemPrompt: settingsStore.systemPrompt,
-        temperature: settingsStore.temperature,
-        topP: settingsStore.topP,
-        maxOutputTokens: settingsStore.maxOutputTokens,
-        structuredOutput: settingsStore.structuredOutput,
-        outputSchema: settingsStore.outputSchema
+        name: '', // Always empty name for new templates
+        modelName: 'gemini-1.5-flash', // Use default model
+        systemPrompt: '', // Always empty system prompt for new templates
+        temperature: 0.9, // Default temperature
+        topP: 1, // Default topP
+        maxOutputTokens: 2048, // Default token limit
+        structuredOutput: false, // Default structured output setting
+        outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}' // Default schema
       };
     } 
     // Load template data if in edit mode
@@ -337,58 +337,45 @@ function validateSchema() {
   }
 }
 
-// Save template
+// Save template with optimistic UI approach - much faster
 async function saveTemplate() {
   if (!isFormValid.value) return;
   
-  isLoading.value = true;
+  // Show success status immediately
+  showStatus('success', props.mode === 'edit' ? 'Template updated successfully' : 'Template created successfully');
+  
+  // Extract configuration values
+  const config = {
+    modelName: templateConfig.value.modelName,
+    systemPrompt: templateConfig.value.systemPrompt,
+    temperature: parseFloat(templateConfig.value.temperature),
+    topP: parseFloat(templateConfig.value.topP),
+    maxOutputTokens: parseInt(templateConfig.value.maxOutputTokens),
+    structuredOutput: templateConfig.value.structuredOutput,
+    outputSchema: templateConfig.value.outputSchema
+  };
   
   try {
-    // Extract configuration values
-    const config = {
-      modelName: templateConfig.value.modelName,
-      systemPrompt: templateConfig.value.systemPrompt,
-      temperature: parseFloat(templateConfig.value.temperature),
-      topP: parseFloat(templateConfig.value.topP),
-      maxOutputTokens: parseInt(templateConfig.value.maxOutputTokens),
-      structuredOutput: templateConfig.value.structuredOutput,
-      outputSchema: templateConfig.value.outputSchema
-    };
-    
+    // Save template optimistically - UI will update instantly
     let templateId;
     
-    // Create new or update existing template
     if (props.mode === 'edit' && props.templateId) {
-      // First get the existing template
-      const template = settingsStore.templates.find(t => t.id === props.templateId);
-      if (template) {
-        // Update the template
-        await settingsStore.deleteTemplate(props.templateId);
-        templateId = await settingsStore.saveTemplate(templateConfig.value.name, config);
-        showStatus('success', 'Template updated successfully');
-      } else {
-        showStatus('error', 'Template not found');
-      }
+      templateId = await settingsStore.saveTemplateOptimistic(templateConfig.value.name, config, props.templateId);
     } else {
-      // Create new template
-      templateId = await settingsStore.saveTemplate(templateConfig.value.name, config);
-      showStatus('success', 'Template created successfully');
+      templateId = await settingsStore.saveTemplateOptimistic(templateConfig.value.name, config);
     }
     
-    // Haptic feedback
+    // Haptic feedback for better UX
     if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate([30, 30, 30]);
+      window.navigator.vibrate([30]);
     }
     
-    // Navigate back to templates page after a brief delay
-    setTimeout(() => {
-      router.push('/templates');
-    }, 1000);
+    // Navigate back to templates page instantly without delay
+    router.push('/templates');
+    
   } catch (error) {
     console.error('Failed to save template:', error);
     showStatus('error', `Failed to save template: ${error.message}`);
-  } finally {
-    isLoading.value = false;
   }
 }
 

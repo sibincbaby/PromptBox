@@ -17,6 +17,12 @@
             class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors active:scale-95">
             Edit
           </button>
+          
+          <button v-if="!template || !template.isDefault"
+            @click="confirmDelete" 
+            class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors active:scale-95">
+            Delete
+          </button>
         </div>
       </div>
     </div>

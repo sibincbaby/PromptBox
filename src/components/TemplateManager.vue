@@ -119,9 +119,12 @@
                 <button 
                   @click="deleteTemplate(template.id)" 
                   class="flex-1 py-2 text-sm text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors active:scale-95"
+                  :class="{ 'opacity-50 cursor-not-allowed': template.isDefault }"
+                  :disabled="template.isDefault"
+                  :title="template.isDefault ? 'Default templates cannot be deleted' : 'Delete template'"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 10h16" />
                   </svg>
                   Delete
                 </button>
@@ -191,10 +194,40 @@ onMounted(async () => {
   }
 });
 
+// Watch for changes in the templates collection
+watch(() => templates.value, async (newTemplates) => {
+  // Check if the selected template still exists in the templates collection
+  if (selectedTemplateId.value) {
+    const templateExists = newTemplates.some(t => t.id.toString() === selectedTemplateId.value.toString());
+    
+    if (!templateExists) {
+      console.log('Selected template no longer exists, updating UI');
+      // Get the default template
+      const defaultTemplate = newTemplates.find(t => t.isDefault);
+      
+      if (defaultTemplate) {
+        // Switch to default template
+        selectedTemplateId.value = defaultTemplate.id.toString();
+        selectedTemplate.value = defaultTemplate;
+        await settingsStore.loadTemplate(defaultTemplate.id);
+        emit('template-changed', defaultTemplate.id);
+      } else {
+        // Clear selection if no default template exists
+        selectedTemplateId.value = '';
+        selectedTemplate.value = null;
+        await settingsStore.resetToDefaultSettings();
+        emit('template-changed', null);
+      }
+    }
+  }
+}, { deep: true });
+
 // Watch for changes in the selected template
 watch(selectedTemplate, async (newTemplate) => {
   if (newTemplate) {
     selectedTemplateId.value = newTemplate.id.toString();
+    // Close the dropdown when a template is selected
+    isOpen.value = false;
     await settingsStore.loadTemplate(parseInt(newTemplate.id));
     // Emit event to notify parent component that template has changed
     emit('template-changed', newTemplate.id);

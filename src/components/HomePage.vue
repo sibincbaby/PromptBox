@@ -216,7 +216,29 @@ const loadChat = async (chatId) => {
     if (chat) {
       chatMessages.value = chat.messages;
       currentChatId.value = chat.id;
-      // TODO: Optionally load settings used for this chat if stored
+      
+      // Check if this chat was using a template, and if that template still exists
+      if (chat.templateId) {
+        await settingsStore.loadTemplates(); // Make sure templates are loaded
+        const templateExists = settingsStore.templates.some(t => t.id === parseInt(chat.templateId));
+        
+        if (templateExists) {
+          // Load the template this chat was using
+          await settingsStore.loadTemplate(parseInt(chat.templateId));
+          console.log('Loaded template for chat:', settingsStore.currentTemplateName);
+        } else {
+          // Template was deleted, switch to default
+          console.log('Template used by this chat was deleted, switching to default settings');
+          await settingsStore.resetToDefaultSettings();
+          
+          // Add an informative message to the chat
+          chatMessages.value.push({
+            sender: 'model',
+            text: 'Note: The template previously used in this conversation has been deleted. Using default settings now.'
+          });
+        }
+      }
+      
       scrollToBottom();
     } else {
       console.warn(`Chat with ID ${chatId} not found. Starting new chat.`);

@@ -4,8 +4,20 @@ import { useSettingsStore } from '@/store/modules/settingsStore';
 export async function callGeminiApi(prompt) {
   const settingsStore = useSettingsStore();
   
-  // Make sure settings are loaded from DB before checking API key
+  // Force a fresh load of settings before each API call to ensure the latest template settings are used
   await settingsStore.loadAllSettings();
+
+  // If currentTemplateId exists, verify that the template still exists
+  if (settingsStore.currentTemplateId) {
+    const templateExists = settingsStore.templates.some(
+      t => t.id === parseInt(settingsStore.currentTemplateId)
+    );
+    
+    if (!templateExists) {
+      console.log('Template used for this chat no longer exists, using default settings');
+      await settingsStore.resetToDefaultSettings();
+    }
+  }
 
   if (!settingsStore.apiKey) {
     throw new Error('API Key not set. Please configure it in the Settings page.');

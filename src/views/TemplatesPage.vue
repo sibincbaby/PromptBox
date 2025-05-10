@@ -41,6 +41,13 @@
     
     <!-- Templates List -->
     <div v-else>
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-4">
+        <div class="text-sm text-gray-500">
+          {{ templates.length }} template{{ templates.length !== 1 ? 's' : '' }}
+        </div>
+      </div>
+      
       <!-- Templates Cards -->
       <ul class="space-y-3">
         <li v-for="template in templates" :key="template.id" 
@@ -100,7 +107,10 @@
                 <div class="w-px h-6 bg-gray-100 self-center"></div>
                 
                 <button @click="confirmDelete(template.id)"
-                      class="flex-1 py-1 text-sm text-red-500 flex items-center justify-center transition-transform active:scale-95">
+                      class="flex-1 py-1 text-sm text-red-500 flex items-center justify-center transition-transform active:scale-95"
+                      :class="{ 'opacity-50 cursor-not-allowed': template.isDefault }"
+                      :disabled="template.isDefault"
+                      :title="template.isDefault ? 'Default templates cannot be deleted' : 'Delete template'">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
@@ -145,12 +155,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useSettingsStore } from '@/store/modules/settingsStore';
 import { inject } from 'vue';
 
 const router = useRouter();
+const route = useRoute();
 const settingsStore = useSettingsStore();
 const emitter = inject('emitter');
 
@@ -179,14 +190,22 @@ const openModalListener = () => {
   navigateToNewTemplate();
 };
 
-// Set up event listener when component is mounted
+// Watch for changes in the route query parameters
+watch(() => route.query.refresh, async (newVal) => {
+  if (newVal) {
+    console.log('Detected refresh parameter, reloading templates');
+    await refreshTemplates();
+  }
+});
+
+// Set up optimistic template handling
 onMounted(async () => {
+  isLoading.value = true;
+  
   try {
-    isLoading.value = true;
-    error.value = null;
-    
+    // Load templates with cache-first approach
     await settingsStore.loadTemplates();
-    templates.value = settingsStore.templates;
+    templates.value = [...settingsStore.templates]; 
   } catch (err) {
     console.error("Failed to load templates:", err);
     error.value = err.message || 'Could not load templates.';
@@ -198,10 +217,11 @@ onMounted(async () => {
   emitter.on('open-new-template-modal', openModalListener);
 });
 
-// Remove event listener when component is unmounted
-onBeforeUnmount(() => {
-  emitter.off('open-new-template-modal', openModalListener);
-});
+// Watch for changes in the templates store
+watch(() => settingsStore.templates, (newTemplates) => {
+  // Update the local templates reference to trigger reactivity
+  templates.value = [...newTemplates];
+}, { deep: true });
 
 // Methods
 const isActiveTemplate = (templateId) => {
@@ -271,15 +291,15 @@ const deleteConfirmed = async () => {
   if (!templateToDelete.value) return;
   
   try {
-    await settingsStore.deleteTemplate(templateToDelete.value);
+    // Use optimistic delete for instant UI update
     showDeleteModal.value = false;
-    templateToDelete.value = null;
     
-    // Refresh templates list
-    templates.value = settingsStore.templates;
-    
-    // Show success message
+    // Show success message immediately
     showStatusMessage('Template deleted');
+    
+    // Perform optimistic delete - UI updates instantly
+    await settingsStore.deleteTemplateOptimistic(templateToDelete.value);
+    templateToDelete.value = null;
     
     // Add haptic feedback for confirmation
     if (window.navigator && window.navigator.vibrate) {
@@ -289,6 +309,24 @@ const deleteConfirmed = async () => {
     console.error(`Failed to delete template ${templateToDelete.value}:`, err);
     showStatusMessage('Failed to delete template');
     showDeleteModal.value = false;
+  }
+};
+
+// Create template button
+const createTemplate = () => {
+  router.push('/template/create');
+};
+
+// Method to refresh templates list when needed
+const refreshTemplates = async () => {
+  isLoading.value = true;
+  try {
+    await settingsStore.loadTemplates();
+    templates.value = settingsStore.templates;
+  } catch (err) {
+    console.error("Failed to refresh templates:", err);
+  } finally {
+    isLoading.value = false;
   }
 };
 

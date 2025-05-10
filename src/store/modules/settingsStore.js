@@ -2,6 +2,11 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { db } from '../../db/db'
 
+// Create a template cache for faster operations
+let templateCache = {}
+let pendingOperations = []
+let isSyncing = false
+
 export const useSettingsStore = defineStore('settings', () => {
   // State - using Composition API style
   const apiKey = ref('')
@@ -84,10 +89,322 @@ export const useSettingsStore = defineStore('settings', () => {
     return saveSettingToDb('outputSchema', schema)
   }
   
-  // Template management functions
+  // NEW OPTIMISTIC UI METHODS -----------------------------
+  
+  // Optimistically add a template to the UI before DB persistence
+  function optimisticAddTemplate(template) {
+    // Add to templates array for immediate UI update
+    templates.value.push(template)
+    
+    // Cache the template
+    templateCache[template.id] = template
+    
+    return template.id
+  }
+  
+  // Optimistically update a template
+  function optimisticUpdateTemplate(template) {
+    const index = templates.value.findIndex(t => t.id === template.id)
+    if (index !== -1) {
+      templates.value[index] = template
+    }
+    
+    // Update cache
+    templateCache[template.id] = template
+    
+    return template.id
+  }
+  
+  // Update the ID of an optimistically added template with the real ID from DB
+  function updateOptimisticTemplateId(tempId, realId) {
+    const index = templates.value.findIndex(t => t.id === tempId)
+    if (index !== -1) {
+      const template = {...templates.value[index]}
+      template.id = realId
+      templates.value[index] = template
+      
+      // Update cache
+      templateCache[realId] = template
+      delete templateCache[tempId]
+    }
+  }
+  
+  // Revert an optimistic update if DB operation fails
+  function revertOptimisticUpdate(id) {
+    const index = templates.value.findIndex(t => t.id === id)
+    if (index !== -1) {
+      templates.value.splice(index, 1)
+    }
+    
+    // Remove from cache
+    delete templateCache[id]
+  }
+  
+  // Queue background operations and trigger sync
+  function queueOperation(operation) {
+    pendingOperations.push(operation)
+    syncInBackground()
+  }
+  
+  // Process pending operations in background
+  async function syncInBackground() {
+    if (isSyncing) return
+    
+    isSyncing = true
+    
+    try {
+      while (pendingOperations.length > 0) {
+        const operation = pendingOperations.shift()
+        
+        try {
+          switch (operation.type) {
+            case 'save':
+              await _persistTemplate(operation.data)
+              break
+            case 'delete':
+              await _persistDeleteTemplate(operation.data)
+              break
+            case 'update':
+              await _persistUpdateTemplate(operation.data)
+              break
+          }
+        } catch (err) {
+          console.error(`Failed to process background operation: ${operation.type}`, err)
+          // Re-add to queue if it's a transient error
+          if (err.name !== 'QuotaExceededError' && err.name !== 'InvalidStateError') {
+            pendingOperations.unshift(operation)
+          }
+          break // Pause processing and try again later
+        }
+      }
+    } finally {
+      isSyncing = false
+      
+      // If there are still operations, schedule another sync attempt
+      if (pendingOperations.length > 0) {
+        setTimeout(syncInBackground, 1000)
+      }
+    }
+  }
+  
+  // Internal method to persist a template to DB
+  async function _persistTemplate(data) {
+    const { template, tempId } = data
+    
+    try {
+      // Save to DB
+      const templateId = await db.templates.add({
+        name: template.name,
+        config: template.config,
+        createdAt: template.createdAt,
+        updatedAt: template.updatedAt,
+        isDefault: template.isDefault || false
+      })
+      
+      // If we have a temporary ID, update it
+      if (tempId && tempId !== templateId) {
+        updateOptimisticTemplateId(tempId, templateId)
+      }
+      
+      return templateId
+    } catch (err) {
+      console.error("Failed to persist template:", err)
+      throw err
+    }
+  }
+  
+  // Internal method to persist a template deletion
+  async function _persistDeleteTemplate(id) {
+    try {
+      await db.templates.delete(id)
+    } catch (err) {
+      console.error("Failed to persist template deletion:", err)
+      throw err
+    }
+  }
+  
+  // Internal method to persist a template update
+  async function _persistUpdateTemplate(data) {
+    const { id, template } = data
+    
+    try {
+      await db.templates.update(id, {
+        name: template.name,
+        config: template.config,
+        updatedAt: new Date(),
+        isDefault: template.isDefault || false
+      })
+    } catch (err) {
+      console.error("Failed to persist template update:", err)
+      throw err
+    }
+  }
+  
+  // Fast template saving with optimistic UI update
+  function saveTemplateOptimistic(name, config, existingId = null) {
+    if (!name) {
+      error.value = 'Template name is required'
+      return null
+    }
+    
+    try {
+      // Use existing ID or generate a temporary one
+      const tempId = existingId || `temp_${Date.now()}`
+      
+      // Create template object
+      const template = {
+        id: tempId,
+        name,
+        config,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDefault: false // We'll set this properly later
+      }
+      
+      // Optimistically update UI
+      if (existingId) {
+        optimisticUpdateTemplate(template)
+      } else {
+        optimisticAddTemplate(template)
+      }
+      
+      // Queue for background persistence
+      queueOperation({
+        type: 'save',
+        data: { template, tempId }
+      })
+      
+      return tempId
+    } catch (err) {
+      console.error("Failed to save template optimistically:", err)
+      error.value = err.message || 'Failed to save template'
+      return null
+    }
+  }
+  
+  // Fast template deletion with optimistic UI update
+  function deleteTemplateOptimistic(templateId) {
+    try {
+      // First check if this is a default template
+      const template = templates.value.find(t => t.id === templateId)
+      
+      // Prevent deletion of default templates
+      if (template && template.isDefault) {
+        console.error("Cannot delete default template")
+        error.value = "Default templates cannot be deleted"
+        return false
+      }
+      
+      // Optimistically remove from UI
+      const index = templates.value.findIndex(t => t.id === templateId)
+      if (index !== -1) {
+        templates.value.splice(index, 1)
+      }
+      
+      // If we deleted the current template, clear current template and reset to default settings
+      if (currentTemplateId.value === templateId.toString()) {
+        // Set current template to null
+        setCurrentTemplate(null)
+        
+        // Also reset to default settings
+        resetToDefaultSettings()
+      }
+      
+      // Queue for background persistence
+      queueOperation({
+        type: 'delete',
+        data: templateId
+      })
+      
+      return true
+    } catch (err) {
+      console.error("Failed to delete template optimistically:", err)
+      error.value = err.message || 'Failed to delete template'
+      return false
+    }
+  }
+  
+  // Reset to default settings when template is deleted
+  async function resetToDefaultSettings() {
+    try {
+      // Look for a default template
+      const defaultTemplate = templates.value.find(t => t.isDefault)
+      
+      if (defaultTemplate) {
+        // Load the default template
+        await loadTemplate(defaultTemplate.id)
+        console.log('Switched to default template:', defaultTemplate.name)
+      } else {
+        // If no default template exists, set to application defaults
+        modelName.value = 'gemini-1.5-flash'
+        systemPrompt.value = ''
+        temperature.value = 0.9
+        topP.value = 1
+        maxOutputTokens.value = 2048
+        structuredOutput.value = false
+        outputSchema.value = '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}'
+        
+        // Save all settings to persist the defaults
+        await saveAllSettings()
+        console.log('Reset to application default settings')
+      }
+      
+      return true
+    } catch (err) {
+      console.error("Failed to reset to default settings:", err)
+      return false
+    }
+  }
+  
+  // Non-optimistic delete (regular)
+  async function deleteTemplate(templateId) {
+    try {
+      // First check if this is a default template
+      const template = await db.templates.get(templateId)
+      
+      // Prevent deletion of default templates
+      if (template && template.isDefault) {
+        console.error("Cannot delete default template")
+        error.value = "Default templates cannot be deleted"
+        return false
+      }
+      
+      await db.templates.delete(templateId)
+      
+      // If we deleted the current template, clear current template and reset to default settings
+      if (currentTemplateId.value === templateId.toString()) {
+        await setCurrentTemplate(null)
+        
+        // Also reset to default settings
+        await resetToDefaultSettings()
+      }
+      
+      // Refresh templates list
+      await loadTemplates()
+      
+      return true
+    } catch (err) {
+      console.error("Failed to delete template:", err)
+      error.value = err.message || 'Failed to delete template'
+      return false
+    }
+  }
+  
   async function loadTemplates() {
     try {
+      // Fast load from cache if available
+      if (Object.keys(templateCache).length > 0 && templates.value.length > 0) {
+        return templates.value
+      }
+      
+      // Otherwise load from DB
       templates.value = await db.templates.toArray()
+      
+      // Update cache
+      templateCache = {}
+      templates.value.forEach(template => {
+        templateCache[template.id] = template
+      })
       
       // Load current template ID
       const currentTemplateIdSetting = await db.settings.get('currentTemplateId')
@@ -113,7 +430,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
   
-  // New method - Save template with explicit config parameter
+  // New method - Save template with explicit config parameter and improved refresh logic
   async function saveTemplate(name, configValues) {
     if (!name) {
       error.value = 'Template name is required'
@@ -142,19 +459,26 @@ export const useSettingsStore = defineStore('settings', () => {
         await db.templates.update(templateId, {
           name,
           config: templateConfig,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // Maintain isDefault flag if it already exists
+          isDefault: existingTemplate.isDefault || false
         })
       } else {
+        // Check if this is going to be the first template
+        const templatesCount = await db.templates.count()
+        const isFirstTemplate = templatesCount === 0
+        
         // Create new template
         templateId = await db.templates.add({
           name,
           config: templateConfig,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          isDefault: isFirstTemplate // Only set as default if it's the first template
         })
       }
       
-      // Refresh templates list
+      // Force a direct refresh of the templates list from database
       await loadTemplates()
       
       // Set current template
@@ -197,15 +521,22 @@ export const useSettingsStore = defineStore('settings', () => {
         await db.templates.update(templateId, {
           name,
           config: templateConfig,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // Maintain isDefault flag if it already exists
+          isDefault: existingTemplate.isDefault || false
         })
       } else {
+        // Check if this is going to be the first template
+        const templatesCount = await db.templates.count()
+        const isFirstTemplate = templatesCount === 0
+        
         // Create new template
         templateId = await db.templates.add({
           name,
           config: templateConfig,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          isDefault: isFirstTemplate // Only set as default if it's the first template
         })
       }
       
@@ -225,11 +556,24 @@ export const useSettingsStore = defineStore('settings', () => {
   
   async function deleteTemplate(templateId) {
     try {
+      // First check if this is a default template
+      const template = await db.templates.get(templateId)
+      
+      // Prevent deletion of default templates
+      if (template && template.isDefault) {
+        console.error("Cannot delete default template")
+        error.value = "Default templates cannot be deleted"
+        return false
+      }
+      
       await db.templates.delete(templateId)
       
-      // If we deleted the current template, clear current template
+      // If we deleted the current template, clear current template and reset to default settings
       if (currentTemplateId.value === templateId.toString()) {
         await setCurrentTemplate(null)
+        
+        // Also reset to default settings
+        await resetToDefaultSettings()
       }
       
       // Refresh templates list
@@ -343,6 +687,9 @@ export const useSettingsStore = defineStore('settings', () => {
       // Load templates
       await loadTemplates()
       
+      // Fix any duplicate default templates
+      await ensureSingleDefaultTemplate()
+      
       return true
     } catch (err) {
       console.error("Failed to load settings:", err)
@@ -440,7 +787,7 @@ export const useSettingsStore = defineStore('settings', () => {
         
         // Add default template to database
         const defaultTemplateId = await db.templates.add({
-          name: 'Default Configuration',
+          name: 'PromptBox Chat',
           config: defaultTemplateConfig,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -459,6 +806,38 @@ export const useSettingsStore = defineStore('settings', () => {
       console.error("Failed to create default template:", err)
       error.value = err.message || 'Failed to create default template'
       return null
+    }
+  }
+  
+  // Function to ensure only one template is marked as default
+  async function ensureSingleDefaultTemplate() {
+    try {
+      // Get all templates from the database
+      const allTemplates = await db.templates.toArray();
+      
+      // Find templates with isDefault = true 
+      const defaultTemplates = allTemplates.filter(template => template.isDefault === true);
+      
+      // If there are multiple default templates, fix the issue
+      if (defaultTemplates.length > 1) {
+        
+        // Keep only the first one as default
+        for (let i = 1; i < defaultTemplates.length; i++) {
+          await db.templates.update(defaultTemplates[i].id, { isDefault: false });
+        }
+        
+        // If no templates are marked as default, set the first one
+      } else if (defaultTemplates.length === 0 && allTemplates.length > 0) {
+        await db.templates.update(allTemplates[0].id, { isDefault: true });
+      }
+      
+      // Refresh templates list to reflect changes
+      await loadTemplates();
+      
+      return true;
+    } catch (err) {
+      console.error("Failed to fix default templates:", err);
+      return false;
     }
   }
   
@@ -533,6 +912,7 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettingToDb,
     saveAllSettings,
     initializeSettings,
+    resetToDefaultSettings,
     
     // Template management
     loadTemplates,
@@ -540,7 +920,18 @@ export const useSettingsStore = defineStore('settings', () => {
     saveAsTemplate,
     loadTemplate,
     deleteTemplate,
-    setCurrentTemplate
+    setCurrentTemplate,
+    ensureSingleDefaultTemplate,
+    
+    // New optimistic methods
+    optimisticAddTemplate,
+    optimisticUpdateTemplate,
+    updateOptimisticTemplateId,
+    revertOptimisticUpdate,
+    saveTemplateOptimistic,
+    deleteTemplateOptimistic,
+    queueOperation,
+    syncInBackground
   }
 }, {
   // Persistence configuration
