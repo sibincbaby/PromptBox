@@ -4,6 +4,9 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 const HomePage = () => import('../components/HomePage.vue');
 const HistoryPage = () => import('../views/HistoryPage.vue');
 const SettingsPage = () => import('../views/SettingsPage.vue');
+const TemplatesPage = () => import('../views/TemplatesPage.vue');
+const TemplateConfigPage = () => import('../views/TemplateConfigPage.vue'); // Template config for edit/create
+const TemplateViewPage = () => import('../views/TemplateViewPage.vue'); // New import for template viewing
 
 const routes = [
   {
@@ -17,12 +20,38 @@ const routes = [
     component: HistoryPage,
   },
   {
+    path: '/templates',
+    name: 'Templates',
+    component: TemplatesPage,
+  },
+  {
+    path: '/template/new',
+    name: 'NewTemplate',
+    component: TemplateConfigPage,
+    props: { mode: 'create' }
+  },
+  {
+    path: '/template/edit/:id',
+    name: 'EditTemplate',
+    component: TemplateConfigPage,
+    props: route => ({ 
+      mode: 'edit', 
+      templateId: parseInt(route.params.id) 
+    })
+  },
+  {
+    path: '/template/view/:id',
+    name: 'ViewTemplate',
+    component: TemplateViewPage,
+    props: route => ({
+      templateId: parseInt(route.params.id)
+    })
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: SettingsPage,
   },
-  // Add redirect or 404 page if needed
-  // { path: '/:pathMatch(.*)*', redirect: '/' }
 ];
 
 const router = createRouter({

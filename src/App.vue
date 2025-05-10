@@ -25,6 +25,16 @@
           </keep-alive>
         </transition>
       </router-view>
+      
+      <!-- Floating Action Button (FAB) for New Template -->
+      <button 
+        v-if="$route.path === '/templates'" 
+        @click="navigateToNewTemplate"
+        class="fab fixed right-5 bottom-20 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg z-20 flex items-center justify-center transition-transform active:scale-95 hover:bg-indigo-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
     </main>
 
     <!-- Mobile Bottom Navigation Bar -->
@@ -48,6 +58,15 @@
           </div>
         </router-link>
         
+        <router-link to="/templates" class="mobile-tab-button group py-2 px-4" active-class="text-indigo-600">
+          <div class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform group-active:scale-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+            <span class="text-xs mt-1">Templates</span>
+          </div>
+        </router-link>
+        
         <router-link to="/settings" class="mobile-tab-button group py-2 px-4" active-class="text-indigo-600">
           <div class="flex flex-col items-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform group-active:scale-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,6 +83,12 @@
 
 <script setup>
 import { Analytics } from '@vercel/analytics/vue';
+import { inject } from 'vue';
+import { useRouter } from 'vue-router';
+
+// Get router and event bus
+const router = useRouter();
+const emitter = inject('emitter');
 
 // Scripts for handling page transitions
 const beforePageLeave = (el) => {
@@ -81,6 +106,16 @@ const onPageEnter = (el) => {
   }, 50);
 };
 
+// Function to navigate to the new template page
+const navigateToNewTemplate = () => {
+  // Add haptic feedback if available
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(20);
+  }
+  
+  // Navigate directly to the new template page
+  router.push('/template/new');
+};
 </script>
 
 <style>
@@ -117,6 +152,22 @@ html, body {
 .page-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+/* Floating Action Button animation */
+.fab {
+  animation: fabIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fabIn {
+  from { 
+    transform: translateY(20px) scale(0.8); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0) scale(1); 
+    opacity: 1; 
+  }
 }
 </style>
 

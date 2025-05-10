@@ -77,29 +77,9 @@
     <div v-else-if="mode === 'manager'" class="template-manager-full">
       <div class="template-manager-header mb-4">
         <h3 class="text-base font-medium text-gray-800 mb-1">Configuration Templates</h3>
-        <p class="text-sm text-gray-500">Save your current configuration as a template to quickly reuse it later.</p>
+        <p class="text-sm text-gray-500">Your saved configurations that can be quickly applied.</p>
       </div>
-      
-      <div class="save-template-form mb-5">
-        <label for="templateName" class="block text-sm font-medium text-gray-700 mb-2">Template Name:</label>
-        <div class="flex gap-2">
-          <input 
-            id="templateName" 
-            v-model="newTemplateName" 
-            type="text" 
-            placeholder="e.g., My Expense Manager"
-            class="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
-          />
-          <button 
-            @click="saveAsTemplate" 
-            :disabled="!newTemplateName" 
-            class="px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed disabled:text-gray-500 active:scale-95"
-          >
-            Save Template
-          </button>
-        </div>
-      </div>
-      
+    
       <div v-if="hasTemplates" class="saved-templates">
         <h4 class="text-sm font-medium text-gray-700 mb-3">Saved Templates</h4>
         <div class="templates-list space-y-3">
@@ -107,7 +87,10 @@
             v-for="template in templates" 
             :key="template.id" 
             class="template-item bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md"
-            :class="{ 'border-indigo-200 bg-indigo-50/30': isActiveTemplate(template.id) }"
+            :class="{ 
+              'border-indigo-200 bg-indigo-50/30': isActiveTemplate(template.id),
+              'border-green-200 bg-green-50/30': template.isDefault && !isActiveTemplate(template.id)
+            }"
           >
             <div class="p-4">
               <div class="flex justify-between items-start mb-3">
@@ -115,6 +98,9 @@
                   <span class="font-medium text-gray-800">{{ template.name }}</span>
                   <span v-if="isActiveTemplate(template.id)" class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">
                     Active
+                  </span>
+                  <span v-else-if="template.isDefault" class="ml-2 bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                    Default
                   </span>
                 </div>
               </div>
@@ -152,6 +138,7 @@
           </svg>
         </div>
         <p class="text-gray-500">You don't have any saved templates yet.</p>
+        <p class="text-sm mt-2 text-gray-400">Use "Save Settings" to create templates.</p>
       </div>
     </div>
   </div>
@@ -174,7 +161,6 @@ const props = defineProps({
 const emit = defineEmits(['template-changed']);
 
 const settingsStore = useSettingsStore();
-const newTemplateName = ref('');
 const selectedTemplateId = ref('');
 const selectedTemplate = ref(null);
 const query = ref('');
@@ -225,18 +211,6 @@ async function handleTemplateChange() {
     await settingsStore.loadTemplate(parseInt(selectedTemplateId.value));
     // Emit event after template is loaded
     emit('template-changed', parseInt(selectedTemplateId.value));
-  }
-}
-
-async function saveAsTemplate() {
-  if (newTemplateName.value) {
-    await settingsStore.saveAsTemplate(newTemplateName.value);
-    newTemplateName.value = ''; // Clear input after saving
-    
-    // Add haptic feedback if available
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate([30, 30, 30]);
-    }
   }
 }
 

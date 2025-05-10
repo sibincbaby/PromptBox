@@ -113,6 +113,62 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
   
+  // New method - Save template with explicit config parameter
+  async function saveTemplate(name, configValues) {
+    if (!name) {
+      error.value = 'Template name is required'
+      return null
+    }
+    
+    try {
+      // Use the provided config values rather than reactive state
+      const templateConfig = {
+        modelName: configValues.modelName,
+        systemPrompt: configValues.systemPrompt,
+        temperature: configValues.temperature,
+        topP: configValues.topP,
+        maxOutputTokens: configValues.maxOutputTokens,
+        structuredOutput: configValues.structuredOutput,
+        outputSchema: configValues.outputSchema
+      }
+      
+      // Check if template with this name already exists
+      const existingTemplate = await db.templates.where('name').equals(name).first()
+      
+      let templateId
+      if (existingTemplate) {
+        // Update existing template
+        templateId = existingTemplate.id
+        await db.templates.update(templateId, {
+          name,
+          config: templateConfig,
+          updatedAt: new Date()
+        })
+      } else {
+        // Create new template
+        templateId = await db.templates.add({
+          name,
+          config: templateConfig,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+      }
+      
+      // Refresh templates list
+      await loadTemplates()
+      
+      // Set current template
+      await setCurrentTemplate(templateId)
+      
+      return templateId
+    } catch (err) {
+      console.error("Failed to save template:", err)
+      error.value = err.message || 'Failed to save template'
+      return null
+    }
+  }
+  
+  // Legacy method - use current state values
   async function saveAsTemplate(name) {
     if (!name) {
       error.value = 'Template name is required'
@@ -120,7 +176,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     
     try {
-      // Create template config object
+      // Create template config object using current state
       const templateConfig = {
         modelName: modelName.value,
         systemPrompt: systemPrompt.value,
@@ -360,6 +416,50 @@ export const useSettingsStore = defineStore('settings', () => {
         await db.settings.put({ key, value })
       }
     }
+    
+    // Create default template if no templates exist
+    await createDefaultTemplateIfNeeded()
+  }
+  
+  // Create a default template if none exists
+  async function createDefaultTemplateIfNeeded() {
+    try {
+      const templatesCount = await db.templates.count()
+      
+      if (templatesCount === 0) {
+        // Define default template configuration
+        const defaultTemplateConfig = {
+          modelName: 'gemini-1.5-flash',
+          systemPrompt: '',
+          temperature: 0.7,
+          topP: 0.9,
+          maxOutputTokens: 2048,
+          structuredOutput: false,
+          outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}'
+        }
+        
+        // Add default template to database
+        const defaultTemplateId = await db.templates.add({
+          name: 'Default Configuration',
+          config: defaultTemplateConfig,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isDefault: true
+        })
+        
+        // Set as current template
+        await setCurrentTemplate(defaultTemplateId)
+        
+        console.log('Created default template with ID:', defaultTemplateId)
+        return defaultTemplateId
+      }
+      
+      return null
+    } catch (err) {
+      console.error("Failed to create default template:", err)
+      error.value = err.message || 'Failed to create default template'
+      return null
+    }
   }
   
   // Initialize settings
@@ -436,6 +536,7 @@ export const useSettingsStore = defineStore('settings', () => {
     
     // Template management
     loadTemplates,
+    saveTemplate,
     saveAsTemplate,
     loadTemplate,
     deleteTemplate,
