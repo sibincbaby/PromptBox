@@ -189,14 +189,6 @@
       </div>
     </div>
 
-    <!-- Status message -->
-    <transition name="fade">
-      <div v-if="statusMessage" 
-          class="fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm text-white shadow-lg"
-          :class="statusMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'">
-        {{ statusMessage.text }}
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -204,6 +196,7 @@
 import { ref, computed, onMounted, watch, onBeforeMount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useSettingsStore } from '@/store/modules/settingsStore';
+import { useNotificationStore } from '@/store/modules/notificationStore';
 
 const props = defineProps({
   mode: {
@@ -224,6 +217,7 @@ const props = defineProps({
 const router = useRouter();
 const route = useRoute();
 const settingsStore = useSettingsStore();
+const notificationStore = useNotificationStore(); // Add notification store
 
 // Template configuration with default values
 const templateConfig = ref({
@@ -404,10 +398,12 @@ async function saveTemplate() {
 
 // Show status message
 function showStatus(type, text) {
-  statusMessage.value = { type, text };
-  setTimeout(() => {
-    statusMessage.value = null;
-  }, 3000);
+  // Use the notification store instead of local state
+  if (type === 'success') {
+    notificationStore.success(text);
+  } else if (type === 'error') {
+    notificationStore.error(text);
+  }
 }
 
 // Navigate back to templates page
@@ -469,6 +465,6 @@ input[type="range"]::-moz-range-thumb:active {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, 20px);
+  transform: translateY(-10px);
 }
 </style>

@@ -132,15 +132,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Status message -->
-    <transition name="fade">
-      <div v-if="statusMessage" 
-          class="fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm text-white shadow-lg"
-          :class="statusMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'">
-        {{ statusMessage.text }}
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -148,6 +139,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSettingsStore } from '@/store/modules/settingsStore';
+import { useNotificationStore } from '@/store/modules/notificationStore';
 
 const props = defineProps({
   templateId: {
@@ -158,11 +150,11 @@ const props = defineProps({
 
 const router = useRouter();
 const settingsStore = useSettingsStore();
+const notificationStore = useNotificationStore();
 
 // State
 const template = ref(null);
 const isLoading = ref(true);
-const statusMessage = ref(null);
 
 // Available model options for display
 const availableModels = [
@@ -260,10 +252,14 @@ function formatJSON(jsonString) {
 
 // Show status message
 function showStatus(type, text) {
-  statusMessage.value = { type, text };
-  setTimeout(() => {
-    statusMessage.value = null;
-  }, 3000);
+  // Use the notification store instead of local state
+  if (type === 'success') {
+    notificationStore.success(text);
+  } else if (type === 'error') {
+    notificationStore.error(text);
+  } else {
+    notificationStore.info(text);
+  }
 }
 
 // Navigate back to templates page
@@ -297,6 +293,6 @@ function navigateBack() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, 20px);
+  transform: translateY(-10px);
 }
 </style>

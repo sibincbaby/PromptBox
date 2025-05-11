@@ -78,6 +78,9 @@
         </router-link>
       </div>
     </nav>
+    
+    <!-- Global Notification Container -->
+    <NotificationContainer />
   </div>
 </template>
 
@@ -85,6 +88,7 @@
 import { Analytics } from '@vercel/analytics/vue';
 import { inject } from 'vue';
 import { useRouter } from 'vue-router';
+import NotificationContainer from '@/components/ui/NotificationContainer.vue';
 
 // Get router and event bus
 const router = useRouter();

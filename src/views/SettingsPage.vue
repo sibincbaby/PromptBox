@@ -59,25 +59,6 @@
           Save API Key
         </button>
       </div>
-      
-      <!-- Save Status Notification -->
-      <transition name="fade">
-        <div v-if="saveStatus" 
-            :class="[
-              'fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm text-white shadow-lg',
-              saveStatus.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            ]">
-          <div class="flex items-center space-x-1">
-            <svg v-if="saveStatus.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span>{{ saveStatus.message }}</span>
-          </div>
-        </div>
-      </transition>
     </form>
   </div>
 </template>
@@ -85,9 +66,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useSettingsStore } from '@/store/modules/settingsStore';
+import { useNotificationStore } from '@/store/modules/notificationStore';
 
 // Use the settings store
 const settingsStore = useSettingsStore();
+const notificationStore = useNotificationStore();
 
 // Initialize reactive settings object with only API Key
 const settings = reactive({
@@ -97,14 +80,12 @@ const settings = reactive({
 // UI state variables
 const isLoading = ref(true);
 const error = ref(null);
-const saveStatus = ref(null); // { type: 'success' | 'error', message: string }
 const showApiKey = ref(false);
 
 // Load settings from store when component mounts
 const loadSettings = async () => {
   isLoading.value = true;
   error.value = null;
-  saveStatus.value = null;
   
   try {
     // Load only API key from the store
@@ -125,7 +106,6 @@ onMounted(() => {
 // Save API Key to the store
 const saveSettings = async () => {
   isLoading.value = true;
-  saveStatus.value = null;
   
   try {
     // Save only API Key to the store
@@ -136,13 +116,14 @@ const saveSettings = async () => {
       window.navigator.vibrate([30, 30, 30]);
     }
     
-    saveStatus.value = { 
-      type: 'success', 
-      message: 'API Key saved successfully'
-    };
+    // Use notification store
+    notificationStore.success('API Key saved successfully');
+    
   } catch (err) {
     console.error("Failed to save API Key:", err);
-    saveStatus.value = { type: 'error', message: 'Failed to save API Key' };
+    
+    // Use notification store for error
+    notificationStore.error('Failed to save API Key');
     
     // Add error haptic feedback
     if (window.navigator && window.navigator.vibrate) {
@@ -150,10 +131,6 @@ const saveSettings = async () => {
     }
   } finally {
     isLoading.value = false;
-    // Clear success message after a delay
-    if (saveStatus.value?.type === 'success') {
-      setTimeout(() => { saveStatus.value = null; }, 3000);
-    }
   }
 };
 </script>
@@ -168,7 +145,7 @@ const saveSettings = async () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, 20px);
+  transform: translateY(-10px);
 }
 </style>
 

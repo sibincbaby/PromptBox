@@ -143,14 +143,6 @@
         </div>
       </div>
     </div>
-    
-    <!-- Status Notification -->
-    <transition name="fade">
-      <div v-if="statusMessage" 
-           class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg animate-fade-in">
-        {{ statusMessage }}
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -158,11 +150,13 @@
 import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useSettingsStore } from '@/store/modules/settingsStore';
+import { useNotificationStore } from '@/store/modules/notificationStore';
 import { inject } from 'vue';
 
 const router = useRouter();
 const route = useRoute();
 const settingsStore = useSettingsStore();
+const notificationStore = useNotificationStore();
 const emitter = inject('emitter');
 
 // State
@@ -171,7 +165,6 @@ const isLoading = ref(true);
 const error = ref(null);
 const showDeleteModal = ref(false);
 const templateToDelete = ref(null);
-const statusMessage = ref('');
 
 // Available model options for display
 const availableModels = [
@@ -333,10 +326,8 @@ const refreshTemplates = async () => {
 
 // Show status message that automatically hides after a delay
 const showStatusMessage = (message) => {
-  statusMessage.value = message;
-  setTimeout(() => {
-    statusMessage.value = '';
-  }, 2000);
+  // Use notification store instead of local state
+  notificationStore.info(message);
 };
 </script>
 
@@ -359,7 +350,7 @@ const showStatusMessage = (message) => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, 20px);
+  transform: translateY(-10px);
 }
 
 /* Animations */

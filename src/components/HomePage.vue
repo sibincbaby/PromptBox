@@ -130,12 +130,14 @@ import { callGeminiApi } from '@/services/geminiService';
 // Remove direct DB import and import stores instead
 import { useHistoryStore } from '@/store/modules/historyStore';
 import { useSettingsStore } from '@/store/modules/settingsStore';
+import { useNotificationStore } from '@/store/modules/notificationStore';
 import TemplateManager from '@/components/TemplateManager.vue';
 
 const route = useRoute();
 const router = useRouter();
 const historyStore = useHistoryStore(); // Initialize history store
 const settingsStore = useSettingsStore(); // Initialize settings store
+const notificationStore = useNotificationStore(); // Initialize notification store
 
 const promptInput = ref('');
 const chatMessages = ref([]); // { sender: 'user' | 'model', text: '...' }
@@ -168,16 +170,7 @@ const handleTemplateChanged = async (templateId) => {
   // Show a notification to confirm template change
   const templateName = settingsStore.currentTemplateName;
   if (templateName) {
-    const notification = document.createElement('div');
-    notification.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full text-sm animate-fade-in';
-    notification.textContent = `Template changed to: ${templateName}`;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      notification.style.transition = 'opacity 0.5s ease';
-      setTimeout(() => document.body.removeChild(notification), 500);
-    }, 1500);
+    notificationStore.info(`Template changed to: ${templateName}`);
   }
 };
 
@@ -366,19 +359,11 @@ const copyToClipboard = async (text) => {
     if (window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate([30, 30, 30]);
     }
-    // Visual feedback for copy action
-    const notification = document.createElement('div');
-    notification.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm animate-fade-in';
-    notification.textContent = 'Copied to clipboard';
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      notification.style.transition = 'opacity 0.5s ease';
-      setTimeout(() => document.body.removeChild(notification), 500);
-    }, 1500);
+    // Use notification store instead of DOM manipulation
+    notificationStore.info('Copied to clipboard');
   } catch (err) {
     console.error('Failed to copy text: ', err);
+    notificationStore.error('Failed to copy text');
   }
 };
 </script>
