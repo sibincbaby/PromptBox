@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/your-username/promptbox/compare/v1.5.0...v1.6.0) (2025-05-11)
+
+
+### Features
+
+* added updated styles for chat screen ([f01da20](https://github.com/your-username/promptbox/commit/f01da20b5f92d9b219b79fc53102a29b820f00df))
+
 ## [1.5.0](https://github.com/your-username/promptbox/compare/v1.4.0...v1.5.0) (2025-05-11)
 
 
