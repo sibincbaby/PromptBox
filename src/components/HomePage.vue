@@ -77,7 +77,7 @@
     <!-- Input Area -->
     <div class="input-area p-3 bg-white border-t border-gray-100 shadow-inner">
       <!-- Current Template Indicator -->
-      <div v-if="currentTemplateName" class="flex justify-center items-center mb-2">
+      <div v-if="currentTemplateName && chatMessages.length > 0" class="flex justify-center items-center mb-2">
         <span class="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
           {{ currentTemplateName }}
         </span>
