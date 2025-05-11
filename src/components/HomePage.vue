@@ -15,7 +15,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
           </div>
-          <p class="text-gray-500 text-center">Start a new conversation</p>
+          <p class="text-gray-600 text-center">Start a new conversation</p>
         </div>
 
         <!-- Messages -->
@@ -40,7 +40,7 @@
           <div class="flex justify-end mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button v-if="message.sender === 'model'" 
                    @click="copyToClipboard(message.text)" 
-                   class="text-xs text-gray-400 hover:text-gray-600 flex items-center">
+                   class="text-xs text-gray-600 hover:text-gray-800 flex items-center focus-visible-ring rounded">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
@@ -85,7 +85,7 @@
       
       <div class="flex items-end space-x-2 bg-gray-50 rounded-2xl px-3 py-2">
         <button @click="startNewChat" 
-                class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-indigo-600 focus:outline-none">
+                class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-indigo-600 focus:outline-none focus-visible-ring">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
@@ -100,7 +100,7 @@
       
         <button v-if="promptInput.trim()"
                 @click="clearInput" 
-                class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-600 focus:outline-none">
+                class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-800 focus:outline-none focus-visible-ring">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -109,10 +109,10 @@
         <button @click="sendPrompt" 
                 :disabled="isLoading || !promptInput.trim()"
                 :class="[
-                  'p-2 rounded-full focus:outline-none transition-all transform',
+                  'p-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 transition-all transform',
                   promptInput.trim() && !isLoading 
                     ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-90' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-400 text-white cursor-not-allowed'
                 ]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />

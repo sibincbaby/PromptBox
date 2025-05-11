@@ -4,7 +4,7 @@
     <div class="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
       <div class="flex items-center justify-between p-4">
         <div class="flex items-center">
-          <button @click="navigateBack" class="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
+          <button @click="navigateBack" class="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-600 focus-visible-ring">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -14,7 +14,7 @@
         <button 
           @click="saveTemplate" 
           :disabled="!isFormValid"
-          class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+          class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors focus-visible-ring">
           {{ mode === 'edit' ? 'Update' : 'Create' }}
         </button>
       </div>
@@ -56,12 +56,13 @@
             <select 
               id="modelSelect" 
               v-model="templateConfig.modelName"
-              class="w-full p-3 border border-gray-200 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow pr-10 text-sm">
+              class="w-full p-3 border border-gray-200 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow pr-10 text-sm"
+            >
               <option v-for="model in availableModels" :key="model.value" :value="model.value">
                 {{ model.label }}
               </option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
@@ -83,7 +84,7 @@
           <p v-if="showSystemPromptError" class="mt-1 text-xs text-red-500 transition-opacity duration-200">
             System prompt is required
           </p>
-          <p class="mt-1 text-xs text-gray-500">
+          <p class="mt-1 text-xs text-accessible-gray">
             System prompts help guide the model's behavior for all interactions
           </p>
         </div>
@@ -92,7 +93,7 @@
         <div class="bg-white rounded-lg shadow-sm p-5">
           <div class="flex justify-between items-center mb-2">
             <label for="temperature" class="block text-sm font-medium text-gray-700">Temperature</label>
-            <span class="text-sm text-gray-500">{{ Number(templateConfig.temperature).toFixed(1) }}</span>
+            <span class="text-sm text-accessible-gray">{{ Number(templateConfig.temperature).toFixed(1) }}</span>
           </div>
           <input 
             type="range" 
@@ -101,13 +102,13 @@
             min="0" 
             max="1" 
             step="0.1"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus-visible-ring"
           />
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <div class="flex justify-between text-xs text-accessible-gray mt-1">
             <span>More Focused</span>
             <span>More Creative</span>
           </div>
-          <p class="mt-2 text-xs text-gray-500">
+          <p class="mt-2 text-xs text-accessible-gray">
             Controls randomness: Lower values are more deterministic, higher values more creative
           </p>
         </div>
@@ -116,7 +117,7 @@
         <div class="bg-white rounded-lg shadow-sm p-5">
           <div class="flex justify-between items-center mb-2">
             <label for="topP" class="block text-sm font-medium text-gray-700">Top-P</label>
-            <span class="text-sm text-gray-500">{{ Number(templateConfig.topP).toFixed(1) }}</span>
+            <span class="text-sm text-accessible-gray">{{ Number(templateConfig.topP).toFixed(1) }}</span>
           </div>
           <input 
             type="range" 
@@ -125,9 +126,9 @@
             min="0" 
             max="1" 
             step="0.1"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus-visible-ring"
           />
-          <p class="mt-2 text-xs text-gray-500">
+          <p class="mt-2 text-xs text-accessible-gray">
             Nucleus sampling: Only consider tokens with top probability mass
           </p>
         </div>
@@ -136,7 +137,7 @@
         <div class="bg-white rounded-lg shadow-sm p-5">
           <div class="flex justify-between items-center mb-2">
             <label for="maxTokens" class="block text-sm font-medium text-gray-700">Max Output Tokens</label>
-            <span class="text-sm text-gray-500">{{ templateConfig.maxOutputTokens }}</span>
+            <span class="text-sm text-accessible-gray">{{ templateConfig.maxOutputTokens }}</span>
           </div>
           <input 
             type="range" 
@@ -145,13 +146,13 @@
             min="256" 
             max="8192" 
             step="256"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus-visible-ring"
           />
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <div class="flex justify-between text-xs text-accessible-gray mt-1">
             <span>Shorter</span>
             <span>Longer</span>
           </div>
-          <p class="mt-2 text-xs text-gray-500">
+          <p class="mt-2 text-xs text-accessible-gray">
             Maximum number of tokens the model can generate in a response
           </p>
         </div>
@@ -162,8 +163,9 @@
             <label for="structuredOutput" class="block text-sm font-medium text-gray-700">Structured Output</label>
             <button 
               type="button"
-              class="relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors"
-              :class="templateConfig.structuredOutput ? 'bg-indigo-600' : 'bg-gray-200'"
+              id="structuredOutput"
+              class="relative inline-flex h-6 w-11 items-center rounded-full focus-visible-ring transition-colors"
+              :class="templateConfig.structuredOutput ? 'bg-indigo-600' : 'bg-gray-500'"
               @click="templateConfig.structuredOutput = !templateConfig.structuredOutput"
             >
               <span class="sr-only">Toggle structured output</span>
@@ -173,7 +175,7 @@
               ></span>
             </button>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Force the model to return a specific JSON structure</p>
+          <p class="text-xs text-accessible-gray mt-1">Force the model to return a specific JSON structure</p>
         </div>
           
         <!-- Output Schema (shown only when structured output is enabled) -->
@@ -186,7 +188,7 @@
             placeholder="{}" 
             class="w-full p-3 border border-gray-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
           ></textarea>
-          <p class="text-xs text-gray-500 mt-1">Define the expected JSON structure for the model's response</p>
+          <p class="text-xs text-accessible-gray mt-1">Define the expected JSON structure for the model's response</p>
           <div v-if="schemaError" class="mt-2 text-xs text-red-500">
             {{ schemaError }}
           </div>

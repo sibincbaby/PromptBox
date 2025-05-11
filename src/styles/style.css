@@ -5,12 +5,12 @@
 @layer base {
   :root {
     --primary: 79 70 229; /* indigo-600 */
-    --primary-light: 129 140 248; /* indigo-400 */
+    --primary-light: 99 102 241; /* indigo-500 instead of indigo-400 for better contrast */
     --background: 249 250 251; /* gray-50 */
     --surface: 255 255 255; /* white */
     --surface-variant: 243 244 246; /* gray-100 */
     --on-surface: 17 24 39; /* gray-900 */
-    --on-surface-variant: 107 114 128; /* gray-500 */
+    --on-surface-variant: 75 85 99; /* gray-600 instead of gray-500 for better contrast */
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   }
 
@@ -81,6 +81,19 @@
   .text-primary {
     color: rgb(var(--primary));
   }
+  
+  /* Accessibility-focused color utilities */
+  .text-accessible-gray {
+    @apply text-gray-600; /* Better contrast than gray-500/400 */
+  }
+  
+  .text-accessible-light {
+    @apply text-gray-700; /* For guaranteed contrast on all backgrounds */
+  }
+  
+  .focus-visible-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
 }
 
 /* Keyframes */
@@ -119,7 +132,7 @@
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-gray-400 rounded-full; /* Increased from gray-300 for better contrast */
 }
 
 /* iOS-style text inputs */

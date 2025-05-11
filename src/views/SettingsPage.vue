@@ -37,8 +37,12 @@
             <input :type="showApiKey ? 'text' : 'password'" id="apiKey" v-model="settings.apiKey" 
                   placeholder="Enter your Gemini API Key" 
                   class="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm" />
-            <button type="button" @click="showApiKey = !showApiKey" 
-                   class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button 
+              type="button" 
+              @click="showApiKey = !showApiKey" 
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus-visible-ring rounded-full"
+              :aria-label="showApiKey ? 'Hide API key' : 'Show API key'"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                      :d="showApiKey 
@@ -47,13 +51,16 @@
               </svg>
             </button>
           </div>
-          <p class="mt-2 text-xs text-gray-500">Your API key is stored locally in your browser and is required to use the Gemini API.</p>
-          <p class="mt-1 text-xs text-gray-500">Visit <a href="https://ai.google.dev/" target="_blank" class="text-indigo-600 hover:underline">Google AI Studio</a> to get an API key.</p>
+          <p class="mt-2 text-xs text-accessible-gray">Your API key is stored locally in your browser and is required to use the Gemini API.</p>
+          <p class="mt-1 text-xs text-accessible-gray">Visit <a href="https://ai.google.dev/" target="_blank" class="text-indigo-600 hover:underline focus-visible-ring rounded">Google AI Studio</a> to get an API key.</p>
           
           <!-- Save API Key button inside API Configuration section -->
           <div class="flex justify-end mt-4">
-            <button type="submit" 
-                  class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors active:scale-95">
+            <button 
+              type="submit" 
+              class="w-full sm:w-auto px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors active:scale-95 focus-visible-ring"
+              :disabled="isApiKeyEmpty"
+            >
               Save API Key
             </button>
           </div>
@@ -77,13 +84,14 @@
             <span class="text-sm font-medium">{{ lastUpdatedFormatted }}</span>
           </div>
           
-          <div class="flex items-center justify-between">
-            <p class="text-xs text-gray-500">Check for new app updates and install them.</p>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p class="text-xs text-accessible-gray">Check for new app updates and install them.</p>
             <button 
               type="button" 
               @click="checkForUpdates"
               :disabled="isCheckingForUpdates"
-              class="px-3 py-2 text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors active:scale-95">
+              class="w-full sm:w-auto px-3 py-2 text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors active:scale-95 focus-visible-ring whitespace-nowrap"
+            >
               <span v-if="isCheckingForUpdates">Checking...</span>
               <span v-else>Check for Updates</span>
             </button>
@@ -101,7 +109,8 @@
                   <p class="text-sm text-green-700">Update available! Click to install:</p>
                   <button 
                     @click="installUpdate" 
-                    class="mt-1 text-sm font-medium text-green-700 underline">
+                    class="mt-1 text-sm font-medium text-green-700 underline focus-visible-ring rounded"
+                  >
                     Install Update
                   </button>
                 </div>
@@ -135,6 +144,11 @@ const showApiKey = ref(false);
 const isCheckingForUpdates = ref(false);
 const updateAvailable = ref(false);
 const registration = ref(null);
+
+// Computed property to check if API key is empty
+const isApiKeyEmpty = computed(() => {
+  return !settings.apiKey || settings.apiKey.trim() === '';
+});
 
 // Get app version from the global variable via inject
 const appVersion = inject('appVersion');

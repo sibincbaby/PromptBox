@@ -32,7 +32,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <p class="text-gray-500">No chat history yet</p>
+      <p class="text-gray-600">No chat history yet</p>
     </div>
     
     <!-- History List -->
@@ -45,12 +45,12 @@
           <div @click="loadChat(chat.id)" class="p-4 active:bg-gray-50 transition-colors">
             <div class="flex justify-between items-start">
               <div class="flex-1 pr-4">
-                <p class="text-sm text-gray-600 mb-1">{{ formatTimestamp(chat.timestamp) }}</p>
+                <p class="text-sm text-accessible-gray mb-1">{{ formatTimestamp(chat.timestamp) }}</p>
                 <p class="text-gray-800 font-medium text-base truncate">{{ getChatTitle(chat.messages) }}</p>
-                <p class="text-sm text-gray-500 mt-1 line-clamp-2 overflow-hidden">{{ getChatPreview(chat.messages) }}</p>
+                <p class="text-sm text-accessible-gray mt-1 line-clamp-2 overflow-hidden">{{ getChatPreview(chat.messages) }}</p>
               </div>
               
-              <div class="flex flex-col items-center text-xs text-gray-400">
+              <div class="flex flex-col items-center text-xs text-gray-600">
                 <span class="bg-gray-100 rounded-full w-7 h-7 flex items-center justify-center mb-1">
                   {{ chat.messages.length }}
                 </span>
@@ -61,7 +61,7 @@
             <!-- Action Area -->
             <div class="flex mt-3 pt-2 border-t border-gray-100">
               <button @click.stop="loadChat(chat.id)" 
-                    class="flex-1 py-1 text-sm text-indigo-600 flex items-center justify-center transition-transform active:scale-95">
+                    class="flex-1 py-1 text-sm text-indigo-600 flex items-center justify-center transition-transform active:scale-95 focus-visible-ring rounded">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -71,7 +71,7 @@
               <div class="w-px h-6 bg-gray-100 self-center"></div>
               
               <button @click.stop="confirmDelete(chat.id)"
-                    class="flex-1 py-1 text-sm text-red-500 flex items-center justify-center transition-transform active:scale-95">
+                    class="flex-1 py-1 text-sm text-red-500 flex items-center justify-center transition-transform active:scale-95 focus-visible-ring rounded">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
@@ -93,11 +93,11 @@
         
         <div class="flex justify-end space-x-3">
           <button @click="showDeleteModal = false"
-                 class="px-4 py-2 text-gray-500 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors">
+                 class="px-4 py-2 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors focus-visible-ring">
             Cancel
           </button>
           <button @click="deleteConfirmed"
-                 class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors">
+                 class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors focus-visible-ring">
             Delete
           </button>
         </div>

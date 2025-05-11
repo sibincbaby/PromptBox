@@ -4,7 +4,7 @@
     <div class="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
       <div class="flex items-center justify-between p-4">
         <div class="flex items-center">
-          <button @click="navigateBack" class="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
+          <button @click="navigateBack" class="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-600 focus-visible-ring">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -14,13 +14,13 @@
         <div class="flex space-x-2">
           <button 
             @click="editTemplate" 
-            class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors active:scale-95">
+            class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors active:scale-95 focus-visible-ring">
             Edit
           </button>
           
           <button v-if="!template || !template.isDefault"
             @click="confirmDelete" 
-            class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors active:scale-95">
+            class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors active:scale-95 focus-visible-ring">
             Delete
           </button>
         </div>
@@ -67,7 +67,7 @@
             </span>
           </div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">
+        <div class="text-xs text-accessible-gray mt-1">
           <span v-if="template.createdAt">Created: {{ formatDate(template.createdAt) }}</span>
           <span v-if="template.updatedAt" class="ml-2">Updated: {{ formatDate(template.updatedAt) }}</span>
         </div>
@@ -86,7 +86,7 @@
           <h4 class="text-sm font-medium text-gray-700 mb-2">System Prompt</h4>
           <div class="bg-gray-50 p-3 rounded border border-gray-100">
             <p v-if="template.config.systemPrompt" class="text-gray-800 whitespace-pre-wrap">{{ template.config.systemPrompt }}</p>
-            <p v-else class="text-gray-500 italic">No system prompt specified</p>
+            <p v-else class="text-gray-600 italic">No system prompt specified</p>
           </div>
         </div>
         
@@ -95,7 +95,7 @@
           <h4 class="text-sm font-medium text-gray-700 mb-3">Generation Parameters</h4>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <p class="text-xs font-medium text-gray-500">Temperature</p>
+              <p class="text-xs font-medium text-accessible-gray">Temperature</p>
               <p class="text-gray-800">{{ template.config.temperature.toFixed(1) }}</p>
               <div class="w-full h-1 bg-gray-200 rounded-full mt-1">
                 <div class="h-1 bg-indigo-500 rounded-full" :style="{ width: `${template.config.temperature * 100}%` }"></div>
@@ -103,7 +103,7 @@
             </div>
             
             <div>
-              <p class="text-xs font-medium text-gray-500">Top-P</p>
+              <p class="text-xs font-medium text-accessible-gray">Top-P</p>
               <p class="text-gray-800">{{ template.config.topP.toFixed(1) }}</p>
               <div class="w-full h-1 bg-gray-200 rounded-full mt-1">
                 <div class="h-1 bg-indigo-500 rounded-full" :style="{ width: `${template.config.topP * 100}%` }"></div>
@@ -111,7 +111,7 @@
             </div>
             
             <div>
-              <p class="text-xs font-medium text-gray-500">Max Output Tokens</p>
+              <p class="text-xs font-medium text-accessible-gray">Max Output Tokens</p>
               <p class="text-gray-800">{{ template.config.maxOutputTokens }}</p>
               <div class="w-full h-1 bg-gray-200 rounded-full mt-1">
                 <div class="h-1 bg-indigo-500 rounded-full" :style="{ width: `${(template.config.maxOutputTokens / 8192) * 100}%` }"></div>
@@ -119,7 +119,7 @@
             </div>
             
             <div>
-              <p class="text-xs font-medium text-gray-500">Structured Output</p>
+              <p class="text-xs font-medium text-accessible-gray">Structured Output</p>
               <p class="text-gray-800">{{ template.config.structuredOutput ? 'Enabled' : 'Disabled' }}</p>
             </div>
           </div>
@@ -128,7 +128,7 @@
         <!-- Output Schema (shown only when structured output is enabled) -->
         <div v-if="template.config.structuredOutput" class="bg-white rounded-lg shadow-sm p-5">
           <h4 class="text-sm font-medium text-gray-700 mb-2">Output Schema</h4>
-          <pre class="bg-gray-50 p-3 rounded border border-gray-100 text-xs font-mono overflow-x-auto">{{ formatJSON(template.config.outputSchema) }}</pre>
+          <pre class="bg-gray-50 p-3 rounded border border-gray-100 text-xs font-mono overflow-x-auto text-gray-800">{{ formatJSON(template.config.outputSchema) }}</pre>
         </div>
       </div>
     </div>
@@ -294,5 +294,21 @@ function navigateBack() {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* Accessibility improvements */
+.focus-visible-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-visible-ring:focus {
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
+}
+
+/* Text color for accessibility */
+.text-accessible-gray {
+  color: #4b5563; /* Tailwind's gray-700 */
 }
 </style>

@@ -16,7 +16,7 @@
           />
           <ComboboxButton 
             @click="isOpen = !isOpen"
-            class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
@@ -36,7 +36,7 @@
             static
             class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
           >
-            <div v-if="filteredTemplates.length === 0 && query !== ''" class="relative cursor-default select-none py-2 px-4 text-gray-500">
+            <div v-if="filteredTemplates.length === 0 && query !== ''" class="relative cursor-default select-none py-2 px-4 text-gray-600">
               No templates found.
             </div>
             
@@ -78,7 +78,7 @@
     <div v-else-if="mode === 'manager'" class="template-manager-full">
       <div class="template-manager-header mb-4">
         <h3 class="text-base font-medium text-gray-800 mb-1">Configuration Templates</h3>
-        <p class="text-sm text-gray-500">Your saved configurations that can be quickly applied.</p>
+        <p class="text-sm text-gray-600">Your saved configurations that can be quickly applied.</p>
       </div>
     
       <div v-if="hasTemplates" class="saved-templates">
@@ -141,8 +141,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
           </svg>
         </div>
-        <p class="text-gray-500">You don't have any saved templates yet.</p>
-        <p class="text-sm mt-2 text-gray-400">Use "Save Settings" to create templates.</p>
+        <p class="text-gray-600">You don't have any saved templates yet.</p>
+        <p class="text-sm mt-2 text-gray-600">Use "Save Settings" to create templates.</p>
       </div>
     </div>
   </div>
