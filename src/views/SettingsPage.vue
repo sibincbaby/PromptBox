@@ -115,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, inject } from 'vue';
 import { useSettingsStore } from '@/store/modules/settingsStore';
 import { useNotificationStore } from '@/store/modules/notificationStore';
 
@@ -136,8 +136,8 @@ const isCheckingForUpdates = ref(false);
 const updateAvailable = ref(false);
 const registration = ref(null);
 
-// App version from package.json
-const appVersion = ref(import.meta.env.PACKAGE_VERSION || "1.0.0");
+// Get app version from the global variable via inject
+const appVersion = inject('appVersion');
 
 // Last updated date
 const lastUpdatedFormatted = computed(() => {

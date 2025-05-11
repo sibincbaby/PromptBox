@@ -2,6 +2,12 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { readFileSync } from 'fs'
+
+// Read package.json to get version
+const packageJson = JSON.parse(
+  readFileSync('./package.json', 'utf-8')
+)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,6 +15,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  define: {
+    // Define version as a global variable
+    '__APP_VERSION__': JSON.stringify(packageJson.version)
   },
   plugins: [
     vue(),

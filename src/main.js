@@ -6,10 +6,6 @@ import App from './App.vue'
 import router from './router'
 import { useSettingsStore } from './store/modules/settingsStore'
 import mitt from 'tiny-emitter/instance'
-import { version } from '../package.json'
-
-// Make package version available to components
-import.meta.env.PACKAGE_VERSION = version || '1.0.0'
 
 // Create Vue app
 const app = createApp(App)
@@ -27,6 +23,9 @@ const emitter = {
 
 // Make emitter available to all components
 app.provide('emitter', emitter)
+
+// Make app version available to all components
+app.provide('appVersion', __APP_VERSION__)
 
 // Use plugins
 app.use(router)
