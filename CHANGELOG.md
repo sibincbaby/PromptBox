@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/your-username/promptbox/compare/v1.1.0...v1.2.0) (2025-05-11)
+
+
+### Features
+
+* added centralized notification toaster ([85f81bd](https://github.com/your-username/promptbox/commit/85f81bd6f94a50f6569ea5ac54d1c354391b8f09))
+* added update manger ([900d800](https://github.com/your-username/promptbox/commit/900d80059daace2d286a52c2ba7e428bc9d0fa71))
+* added updated styles ([db852a5](https://github.com/your-username/promptbox/commit/db852a500adddf5900ffa599641673037c361a11))
+
 ## 1.1.0 (2025-05-11)
 
 
