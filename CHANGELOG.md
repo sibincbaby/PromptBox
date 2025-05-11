@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/your-username/promptbox/compare/v1.2.0...v1.3.0) (2025-05-11)
+
+
+### Features
+
+* added updated styles for buttons ([a1c04bd](https://github.com/your-username/promptbox/commit/a1c04bdf5251cc53efe8fafb03dc2f011d8c376c))
+
 ## [1.2.0](https://github.com/your-username/promptbox/compare/v1.1.0...v1.2.0) (2025-05-11)
 
 
