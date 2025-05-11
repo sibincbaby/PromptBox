@@ -128,6 +128,20 @@ import { ref, reactive, onMounted, computed, inject } from 'vue';
 import { useSettingsStore } from '@/store/modules/settingsStore';
 import { useNotificationStore } from '@/store/modules/notificationStore';
 
+// Import the necessary registration functions from vite-plugin-pwa
+import { useRegisterSW } from 'virtual:pwa-register/vue';
+
+// Use vite-plugin-pwa's built-in update registration
+const { updateServiceWorker, needRefresh } = useRegisterSW({
+  immediate: true,
+  onRegistered(registration) {
+    console.log('Service worker registered:', registration);
+  },
+  onRegisterError(error) {
+    console.error('Service worker registration error:', error);
+  }
+});
+
 // Use the settings store
 const settingsStore = useSettingsStore();
 const notificationStore = useNotificationStore();
@@ -227,61 +241,80 @@ const checkServiceWorkerRegistration = async () => {
   if ('serviceWorker' in navigator) {
     try {
       registration.value = await navigator.serviceWorker.getRegistration();
+      
+      // Add event listener to detect new service worker
+      if (registration.value) {
+        setupServiceWorkerUpdateListeners(registration.value);
+      }
     } catch (error) {
       console.error('Error checking service worker registration:', error);
     }
   }
 };
 
-// Check for app updates
-const checkForUpdates = async () => {
-  isCheckingForUpdates.value = true;
-  updateAvailable.value = false;
-  
-  try {
-    if ('serviceWorker' in navigator) {
-      // Unregister current service worker
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (let reg of registrations) {
-        await reg.update();
-      }
-      
-      // Check for new service worker
-      registration.value = await navigator.serviceWorker.getRegistration();
-      
-      if (registration.value && registration.value.waiting) {
-        // New service worker is waiting to activate
+// Setup listeners for service worker updates
+const setupServiceWorkerUpdateListeners = (reg) => {
+  // Listen for new service worker installation
+  reg.addEventListener('updatefound', () => {
+    // A new service worker is being installed
+    const newWorker = reg.installing;
+    
+    // Listen for state changes on the new service worker
+    newWorker.addEventListener('statechange', () => {
+      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        // New service worker is installed and ready to take over
         updateAvailable.value = true;
         notificationStore.success('Update available! Ready to install.');
-      } else {
-        // No update available
-        notificationStore.info('Your app is up to date!');
-        
-        // Update the "last checked" timestamp
-        await settingsStore.setLastUpdated(new Date().toISOString());
       }
+    });
+  });
+};
+
+// Check for app updates - use vite-plugin-pwa's update mechanism
+const checkForUpdates = async () => {
+  isCheckingForUpdates.value = true;
+  
+  try {
+    // Force check for updates using vite-plugin-pwa's mechanism
+    await updateServiceWorker(true); // The 'true' parameter forces the update
+    
+    // If needRefresh is already true, there was an update found
+    if (needRefresh.value) {
+      updateAvailable.value = true;
+      notificationStore.success('Update available! Ready to install.');
     } else {
-      notificationStore.error('Service workers not supported in this browser');
+      // Check again after a short delay to ensure update had time to be detected
+      setTimeout(() => {
+        if (needRefresh.value) {
+          updateAvailable.value = true;
+          notificationStore.success('Update available! Ready to install.');
+        } else {
+          notificationStore.info('Your app is up to date!');
+          
+          // Update the "last checked" timestamp
+          settingsStore.setLastUpdated(new Date().toISOString());
+        }
+        isCheckingForUpdates.value = false;
+      }, 1000);
     }
   } catch (err) {
     console.error('Error checking for updates:', err);
     notificationStore.error('Failed to check for updates');
-  } finally {
     isCheckingForUpdates.value = false;
   }
 };
 
 // Install available update
 const installUpdate = () => {
-  if (registration.value && registration.value.waiting) {
-    // Send message to service worker to skip waiting
-    registration.value.waiting.postMessage({ type: 'SKIP_WAITING' });
-    
-    // Reload the page to apply updates
+  if (needRefresh.value) {
+    // Use the vite-plugin-pwa's reload mechanism
     window.location.reload();
     
     // Update the last updated timestamp
     settingsStore.setLastUpdated(new Date().toISOString());
+  } else {
+    // No update available, force a check
+    checkForUpdates();
   }
 };
 </script>
