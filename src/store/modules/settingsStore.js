@@ -249,7 +249,11 @@ export const useSettingsStore = defineStore('settings', () => {
   
   // Fast template saving with optimistic UI update
   function saveTemplateOptimistic(name, config, existingId = null) {
-    if (!name) {
+    // Clear any previous errors
+    error.value = null
+    
+    // Validate template name only when actually attempting to save
+    if (!name || name.trim() === '') {
       error.value = 'Template name is required'
       return null
     }

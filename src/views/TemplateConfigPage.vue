@@ -42,8 +42,9 @@
             placeholder="Enter a descriptive name"
             class="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
             autofocus
+            @blur="nameFieldTouched = true"
           />
-          <p v-if="!templateConfig.name.trim()" class="mt-1 text-xs text-red-500">
+          <p v-if="showNameError" class="mt-1 text-xs text-red-500 transition-opacity duration-200">
             Template name is required
           </p>
         </div>
@@ -75,9 +76,13 @@
             id="systemPrompt" 
             v-model="templateConfig.systemPrompt" 
             rows="5" 
-            placeholder="Optional: Provide instructions for the model..." 
+            placeholder="Provide instructions..." 
             class="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow text-sm"
+            @blur="systemPromptFieldTouched = true"
           ></textarea>
+          <p v-if="showSystemPromptError" class="mt-1 text-xs text-red-500 transition-opacity duration-200">
+            System prompt is required
+          </p>
           <p class="mt-1 text-xs text-gray-500">
             System prompts help guide the model's behavior for all interactions
           </p>
@@ -87,12 +92,12 @@
         <div class="bg-white rounded-lg shadow-sm p-5">
           <div class="flex justify-between items-center mb-2">
             <label for="temperature" class="block text-sm font-medium text-gray-700">Temperature</label>
-            <span class="text-sm text-gray-500">{{ templateConfig.temperature.toFixed(1) }}</span>
+            <span class="text-sm text-gray-500">{{ Number(templateConfig.temperature).toFixed(1) }}</span>
           </div>
           <input 
             type="range" 
             id="temperature" 
-            v-model="templateConfig.temperature" 
+            v-model.number="templateConfig.temperature" 
             min="0" 
             max="1" 
             step="0.1"
@@ -111,12 +116,12 @@
         <div class="bg-white rounded-lg shadow-sm p-5">
           <div class="flex justify-between items-center mb-2">
             <label for="topP" class="block text-sm font-medium text-gray-700">Top-P</label>
-            <span class="text-sm text-gray-500">{{ templateConfig.topP.toFixed(1) }}</span>
+            <span class="text-sm text-gray-500">{{ Number(templateConfig.topP).toFixed(1) }}</span>
           </div>
           <input 
             type="range" 
             id="topP" 
-            v-model="templateConfig.topP" 
+            v-model.number="templateConfig.topP" 
             min="0" 
             max="1" 
             step="0.1"
@@ -235,6 +240,19 @@ const templateConfig = ref({
 const isLoading = ref(true);
 const statusMessage = ref(null);
 const schemaError = ref(null);
+const nameFieldTouched = ref(false); // Track if the name field has been interacted with
+const systemPromptFieldTouched = ref(false); // Track if the system prompt field has been interacted with
+const submittedForm = ref(false); // Track if the user tried to submit the form
+
+// Show name error only if the field has been touched or the form has been submitted
+const showNameError = computed(() => {
+  return (nameFieldTouched.value || submittedForm.value) && templateConfig.value.name.trim() === '';
+});
+
+// Show system prompt error only if needed
+const showSystemPromptError = computed(() => {
+  return (systemPromptFieldTouched.value || submittedForm.value) && templateConfig.value.systemPrompt.trim() === '';
+});
 
 // Available model options
 const availableModels = [
@@ -258,6 +276,11 @@ const isFormValid = computed(() => {
 
 // Reset form data on component creation
 onBeforeMount(() => {
+  // Reset interaction tracking
+  nameFieldTouched.value = false;
+  systemPromptFieldTouched.value = false;
+  submittedForm.value = false;
+  
   if (props.mode === 'create') {
     console.log('Resetting template form data (onBeforeMount)');
     // Reset to application defaults completely
@@ -356,6 +379,9 @@ function validateSchema() {
 
 // Save template with optimistic UI approach - much faster
 async function saveTemplate() {
+  // Set submitted flag to true to show validation errors if needed
+  submittedForm.value = true;
+  
   if (!isFormValid.value) return;
   
   // Show success status immediately
