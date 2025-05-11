@@ -23,9 +23,9 @@
       </div>
     </div>
 
-    <form v-else @submit.prevent="saveSettings" class="space-y-5">
+    <div v-else class="space-y-5">
       <!-- API Key Configuration -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <form @submit.prevent="saveApiKey" class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="p-4 border-b border-gray-100">
           <h3 class="text-base font-medium text-gray-800">API Configuration</h3>
         </div>
@@ -49,22 +49,73 @@
           </div>
           <p class="mt-2 text-xs text-gray-500">Your API key is stored locally in your browser and is required to use the Gemini API.</p>
           <p class="mt-1 text-xs text-gray-500">Visit <a href="https://ai.google.dev/" target="_blank" class="text-indigo-600 hover:underline">Google AI Studio</a> to get an API key.</p>
+          
+          <!-- Save API Key button inside API Configuration section -->
+          <div class="flex justify-end mt-4">
+            <button type="submit" 
+                  class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors active:scale-95">
+              Save API Key
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Version Information and Updates -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+          <h3 class="text-base font-medium text-gray-800">App Information</h3>
+        </div>
+        
+        <div class="p-4">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-sm text-gray-700">Version</span>
+            <span class="text-sm font-medium">{{ appVersion }}</span>
+          </div>
+          
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-sm text-gray-700">Last Updated</span>
+            <span class="text-sm font-medium">{{ lastUpdatedFormatted }}</span>
+          </div>
+          
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-gray-500">Check for new app updates and install them.</p>
+            <button 
+              type="button" 
+              @click="checkForUpdates"
+              :disabled="isCheckingForUpdates"
+              class="px-3 py-2 text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors active:scale-95">
+              <span v-if="isCheckingForUpdates">Checking...</span>
+              <span v-else>Check for Updates</span>
+            </button>
+          </div>
+          
+          <div v-if="updateAvailable" class="mt-3">
+            <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded-lg">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-green-700">Update available! Click to install:</p>
+                  <button 
+                    @click="installUpdate" 
+                    class="mt-1 text-sm font-medium text-green-700 underline">
+                    Install Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <!-- Action Buttons -->      
-      <div class="flex justify-end pt-3">
-        <button type="submit" 
-                class="px-5 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors active:scale-95">
-          Save API Key
-        </button>
-      </div>
-    </form>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useSettingsStore } from '@/store/modules/settingsStore';
 import { useNotificationStore } from '@/store/modules/notificationStore';
 
@@ -81,6 +132,28 @@ const settings = reactive({
 const isLoading = ref(true);
 const error = ref(null);
 const showApiKey = ref(false);
+const isCheckingForUpdates = ref(false);
+const updateAvailable = ref(false);
+const registration = ref(null);
+
+// App version from package.json
+const appVersion = ref(import.meta.env.PACKAGE_VERSION || "1.0.0");
+
+// Last updated date
+const lastUpdatedFormatted = computed(() => {
+  if (!settingsStore.lastUpdated) {
+    return "Not available";
+  }
+  
+  const date = new Date(settingsStore.lastUpdated);
+  return date.toLocaleDateString(undefined, { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+});
 
 // Load settings from store when component mounts
 const loadSettings = async () => {
@@ -101,10 +174,11 @@ const loadSettings = async () => {
 
 onMounted(() => {
   loadSettings();
+  checkServiceWorkerRegistration();
 });
 
-// Save API Key to the store
-const saveSettings = async () => {
+// Save API Key to the store - updated method name for clarity
+const saveApiKey = async () => {
   isLoading.value = true;
   
   try {
@@ -131,6 +205,69 @@ const saveSettings = async () => {
     }
   } finally {
     isLoading.value = false;
+  }
+};
+
+// Check if service worker is registered
+const checkServiceWorkerRegistration = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      registration.value = await navigator.serviceWorker.getRegistration();
+    } catch (error) {
+      console.error('Error checking service worker registration:', error);
+    }
+  }
+};
+
+// Check for app updates
+const checkForUpdates = async () => {
+  isCheckingForUpdates.value = true;
+  updateAvailable.value = false;
+  
+  try {
+    if ('serviceWorker' in navigator) {
+      // Unregister current service worker
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let reg of registrations) {
+        await reg.update();
+      }
+      
+      // Check for new service worker
+      registration.value = await navigator.serviceWorker.getRegistration();
+      
+      if (registration.value && registration.value.waiting) {
+        // New service worker is waiting to activate
+        updateAvailable.value = true;
+        notificationStore.success('Update available! Ready to install.');
+      } else {
+        // No update available
+        notificationStore.info('Your app is up to date!');
+        
+        // Update the "last checked" timestamp
+        await settingsStore.setLastUpdated(new Date().toISOString());
+      }
+    } else {
+      notificationStore.error('Service workers not supported in this browser');
+    }
+  } catch (err) {
+    console.error('Error checking for updates:', err);
+    notificationStore.error('Failed to check for updates');
+  } finally {
+    isCheckingForUpdates.value = false;
+  }
+};
+
+// Install available update
+const installUpdate = () => {
+  if (registration.value && registration.value.waiting) {
+    // Send message to service worker to skip waiting
+    registration.value.waiting.postMessage({ type: 'SKIP_WAITING' });
+    
+    // Reload the page to apply updates
+    window.location.reload();
+    
+    // Update the last updated timestamp
+    settingsStore.setLastUpdated(new Date().toISOString());
   }
 };
 </script>

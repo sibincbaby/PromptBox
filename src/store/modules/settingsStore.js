@@ -21,6 +21,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const outputSchema = ref('{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}')
   const isLoading = ref(false)
   const error = ref(null)
+  const lastUpdated = ref(null) // Track when the app was last updated
   
   // Template management
   const templates = ref([])
@@ -87,6 +88,12 @@ export const useSettingsStore = defineStore('settings', () => {
   function setOutputSchema(schema) {
     outputSchema.value = schema
     return saveSettingToDb('outputSchema', schema)
+  }
+  
+  // Set last updated timestamp
+  function setLastUpdated(dateString) {
+    lastUpdated.value = dateString
+    return saveSettingToDb('lastUpdated', dateString)
   }
   
   // NEW OPTIMISTIC UI METHODS -----------------------------
@@ -554,39 +561,6 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
   
-  async function deleteTemplate(templateId) {
-    try {
-      // First check if this is a default template
-      const template = await db.templates.get(templateId)
-      
-      // Prevent deletion of default templates
-      if (template && template.isDefault) {
-        console.error("Cannot delete default template")
-        error.value = "Default templates cannot be deleted"
-        return false
-      }
-      
-      await db.templates.delete(templateId)
-      
-      // If we deleted the current template, clear current template and reset to default settings
-      if (currentTemplateId.value === templateId.toString()) {
-        await setCurrentTemplate(null)
-        
-        // Also reset to default settings
-        await resetToDefaultSettings()
-      }
-      
-      // Refresh templates list
-      await loadTemplates()
-      
-      return true
-    } catch (err) {
-      console.error("Failed to delete template:", err)
-      error.value = err.message || 'Failed to delete template'
-      return false
-    }
-  }
-  
   async function loadTemplate(templateId) {
     try {
       const template = await db.templates.get(templateId)
@@ -678,6 +652,9 @@ export const useSettingsStore = defineStore('settings', () => {
           case 'currentTemplateId':
             currentTemplateId.value = item.value
             break
+          case 'lastUpdated':
+            lastUpdated.value = item.value
+            break
         }
       })
       
@@ -727,7 +704,8 @@ export const useSettingsStore = defineStore('settings', () => {
         { key: 'maxHistoryItems', value: maxHistoryItems.value },
         { key: 'structuredOutput', value: structuredOutput.value },
         { key: 'outputSchema', value: outputSchema.value },
-        { key: 'currentTemplateId', value: currentTemplateId.value }
+        { key: 'currentTemplateId', value: currentTemplateId.value },
+        { key: 'lastUpdated', value: lastUpdated.value }
       ]
       
       await db.settings.bulkPut(settingsToSave)
@@ -754,7 +732,8 @@ export const useSettingsStore = defineStore('settings', () => {
       maxHistoryItems: maxHistoryItems.value || 50,
       structuredOutput: structuredOutput.value !== undefined ? structuredOutput.value : false,
       outputSchema: outputSchema.value || '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}',
-      currentTemplateId: currentTemplateId.value || null
+      currentTemplateId: currentTemplateId.value || null,
+      lastUpdated: lastUpdated.value || new Date().toISOString() // Initialize with current date if not set
     }
 
     for (const [key, value] of Object.entries(defaultSettings)) {
@@ -887,6 +866,7 @@ export const useSettingsStore = defineStore('settings', () => {
     outputSchema,
     isLoading,
     error,
+    lastUpdated,
     
     // Template state
     templates,
@@ -908,6 +888,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setMaxHistoryItems,
     setStructuredOutput,
     setOutputSchema,
+    setLastUpdated,
     loadAllSettings,
     saveSettingToDb,
     saveAllSettings,
@@ -949,7 +930,8 @@ export const useSettingsStore = defineStore('settings', () => {
       'maxHistoryItems',
       'structuredOutput',
       'outputSchema',
-      'currentTemplateId'
+      'currentTemplateId',
+      'lastUpdated'
     ]
   }
 })
