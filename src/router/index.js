@@ -28,7 +28,11 @@ const routes = [
     path: '/template/new',
     name: 'NewTemplate',
     component: TemplateConfigPage,
-    props: { mode: 'create' }
+    // Add a unique key to force component re-creation each time
+    props: route => ({ 
+      mode: 'create',
+      key: Date.now() // Force component recreation with a unique key
+    })
   },
   {
     path: '/template/edit/:id',

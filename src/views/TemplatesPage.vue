@@ -256,7 +256,8 @@ const navigateToNewTemplate = () => {
     window.navigator.vibrate(20);
   }
   
-  router.push('/template/new');
+  // Force component recreation with timestamp
+  router.push(`/template/new?t=${Date.now()}`);
 };
 
 const editTemplate = (templateId) => {

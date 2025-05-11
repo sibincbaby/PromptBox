@@ -1,5 +1,5 @@
 <template>
-  <div class="template-config-page bg-gray-50 min-h-full pb-16">
+  <div class="template-config-page bg-gray-50 min-h-full pb-16" :key="key || 'default'">
     <!-- Header with back button -->
     <div class="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
       <div class="flex items-center justify-between p-4">
@@ -201,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onBeforeMount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useSettingsStore } from '@/store/modules/settingsStore';
 
@@ -213,6 +213,10 @@ const props = defineProps({
   },
   templateId: {
     type: Number,
+    default: null
+  },
+  key: {
+    type: [Number, String],
     default: null
   }
 });
@@ -258,14 +262,33 @@ const isFormValid = computed(() => {
   return templateConfig.value.name.trim() !== '' && !schemaError.value;
 });
 
+// Reset form data on component creation
+onBeforeMount(() => {
+  if (props.mode === 'create') {
+    console.log('Resetting template form data (onBeforeMount)');
+    // Reset to application defaults completely
+    templateConfig.value = {
+      name: '', // Always empty name for new templates
+      modelName: 'gemini-1.5-flash', // Use default model
+      systemPrompt: '', // Always empty system prompt for new templates
+      temperature: 0.9, // Default temperature
+      topP: 1, // Default topP
+      maxOutputTokens: 2048, // Default token limit
+      structuredOutput: false, // Default structured output setting
+      outputSchema: '{\n  "type": "object",\n  "properties": {\n    "result": {\n      "type": "string"\n    }\n  }\n}' // Default schema
+    };
+  }
+});
+
 // Load template data if in edit mode
 onMounted(async () => {
   isLoading.value = true;
   
   try {
-    // Initialize default values based on current settings
+    // Always reset the template configuration to defaults for new templates
     if (props.mode === 'create') {
-      await settingsStore.loadAllSettings();
+      console.log('Creating new template with fresh defaults');
+      // Reset to application defaults completely - no inheritance from current settings
       templateConfig.value = {
         name: '', // Always empty name for new templates
         modelName: 'gemini-1.5-flash', // Use default model
