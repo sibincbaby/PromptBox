@@ -76,7 +76,13 @@
         <div class="p-4">
           <div class="flex justify-between items-center mb-3">
             <span class="text-sm text-gray-700">Version</span>
-            <span class="text-sm font-medium">{{ appVersion }}</span>
+            <span v-if="updateAvailable" class="text-sm font-medium">
+              {{ appVersion }} 
+              <span class="text-green-600">
+                (Update available: {{ pendingVersion || 'New version' }})
+              </span>
+            </span>
+            <span v-else class="text-sm font-medium">{{ appVersion }}</span>
           </div>
           
           <div class="flex justify-between items-center mb-4">
@@ -157,6 +163,7 @@ const error = ref(null);
 const showApiKey = ref(false);
 const isCheckingForUpdates = ref(false);
 const updateAvailable = ref(false);
+const pendingVersion = ref(null); // Store pending version when update is available
 const registration = ref(null);
 
 // Computed property to check if API key is empty
@@ -273,6 +280,7 @@ const setupServiceWorkerUpdateListeners = (reg) => {
 // Check for app updates - use vite-plugin-pwa's update mechanism
 const checkForUpdates = async () => {
   isCheckingForUpdates.value = true;
+  error.value = null;
   
   try {
     // Force check for updates using vite-plugin-pwa's mechanism
@@ -281,12 +289,32 @@ const checkForUpdates = async () => {
     // If needRefresh is already true, there was an update found
     if (needRefresh.value) {
       updateAvailable.value = true;
+      // Fetch the current package.json version to update display
+      try {
+        const response = await fetch('/package.json?t=' + Date.now());
+        if (response.ok) {
+          const packageData = await response.json();
+          pendingVersion.value = packageData.version;
+        }
+      } catch (err) {
+        console.error('Error fetching updated version:', err);
+      }
       notificationStore.success('Update available! Ready to install.');
     } else {
       // Check again after a short delay to ensure update had time to be detected
-      setTimeout(() => {
+      setTimeout(async () => {
         if (needRefresh.value) {
           updateAvailable.value = true;
+          // Try to get updated version
+          try {
+            const response = await fetch('/package.json?t=' + Date.now());
+            if (response.ok) {
+              const packageData = await response.json();
+              pendingVersion.value = packageData.version;
+            }
+          } catch (err) {
+            console.error('Error fetching updated version:', err);
+          }
           notificationStore.success('Update available! Ready to install.');
         } else {
           notificationStore.info('Your app is up to date!');
@@ -300,6 +328,7 @@ const checkForUpdates = async () => {
   } catch (err) {
     console.error('Error checking for updates:', err);
     notificationStore.error('Failed to check for updates');
+    error.value = err.message || 'Failed to check for updates';
     isCheckingForUpdates.value = false;
   }
 };
