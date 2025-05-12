@@ -138,13 +138,23 @@ import { useNotificationStore } from '@/store/modules/notificationStore';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 
 // Use vite-plugin-pwa's built-in update registration
-const { updateServiceWorker, needRefresh } = useRegisterSW({
+const { updateServiceWorker, needRefresh, offlineReady } = useRegisterSW({
   immediate: true,
-  onRegistered(registration) {
-    console.log('Service worker registered:', registration);
+  onRegisteredSW(swUrl, registration) {
+    console.log('Service worker registered:', swUrl);
+    swRegistration.value = registration;
   },
   onRegisterError(error) {
     console.error('Service worker registration error:', error);
+  },
+  onOfflineReady() {
+    console.log('App ready for offline use');
+    offlineReady.value = true;
+  },
+  onNeedRefresh() {
+    console.log('New content available, need to refresh');
+    updateAvailable.value = true;
+    checkNewVersion();
   }
 });
 
@@ -164,7 +174,7 @@ const showApiKey = ref(false);
 const isCheckingForUpdates = ref(false);
 const updateAvailable = ref(false);
 const pendingVersion = ref(null); // Store pending version when update is available
-const registration = ref(null);
+const swRegistration = ref(null); // Store service worker registration
 
 // Computed property to check if API key is empty
 const isApiKeyEmpty = computed(() => {
@@ -209,7 +219,7 @@ const loadSettings = async () => {
 
 onMounted(() => {
   loadSettings();
-  checkServiceWorkerRegistration();
+  setupUpdateDetection();
 });
 
 // Save API Key to the store - updated method name for clarity
@@ -243,104 +253,96 @@ const saveApiKey = async () => {
   }
 };
 
-// Check if service worker is registered
-const checkServiceWorkerRegistration = async () => {
-  if ('serviceWorker' in navigator) {
-    try {
-      registration.value = await navigator.serviceWorker.getRegistration();
-      
-      // Add event listener to detect new service worker
-      if (registration.value) {
-        setupServiceWorkerUpdateListeners(registration.value);
+// Enhanced update detection setup aligned with vite-plugin-pwa
+const setupUpdateDetection = async () => {
+  // Check if we're in a PWA context
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                window.navigator.standalone === true;
+  
+  console.log(`Running in ${isPWA ? 'PWA' : 'browser'} mode`);
+  
+  // Set up polling for updates if in PWA mode
+  if (isPWA) {
+    // Poll for updates every 15 minutes in PWA mode
+    setInterval(() => {
+      if (!isCheckingForUpdates.value) {
+        console.log('Auto-checking for updates...');
+        checkForUpdates(true); // Silent check
       }
-    } catch (error) {
-      console.error('Error checking service worker registration:', error);
-    }
+    }, 15 * 60 * 1000);
   }
 };
 
-// Setup listeners for service worker updates
-const setupServiceWorkerUpdateListeners = (reg) => {
-  // Listen for new service worker installation
-  reg.addEventListener('updatefound', () => {
-    // A new service worker is being installed
-    const newWorker = reg.installing;
-    
-    // Listen for state changes on the new service worker
-    newWorker.addEventListener('statechange', () => {
-      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-        // New service worker is installed and ready to take over
-        updateAvailable.value = true;
-        notificationStore.success('Update available! Ready to install.');
+// Fetch and check the new version from package.json
+const checkNewVersion = async () => {
+  try {
+    // Add cache-busting parameter to avoid getting cached version
+    const response = await fetch('/package.json?t=' + Date.now(), {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     });
-  });
+    
+    if (response.ok) {
+      const packageData = await response.json();
+      console.log('Remote version:', packageData.version, 'Current version:', appVersion);
+      
+      if (packageData.version !== appVersion) {
+        pendingVersion.value = packageData.version;
+        updateAvailable.value = true;
+        notificationStore.success(`Update available: ${packageData.version}`);
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching updated version:', err);
+  }
 };
 
-// Check for app updates - use vite-plugin-pwa's update mechanism
-const checkForUpdates = async () => {
-  isCheckingForUpdates.value = true;
-  error.value = null;
+// Check for app updates - enhanced for PWA support and aligned with vite-plugin-pwa
+const checkForUpdates = async (silent = false) => {
+  if (!silent) {
+    isCheckingForUpdates.value = true;
+    error.value = null;
+  }
   
   try {
     // Force check for updates using vite-plugin-pwa's mechanism
-    await updateServiceWorker(true); // The 'true' parameter forces the update
+    await updateServiceWorker(true);
     
-    // If needRefresh is already true, there was an update found
-    if (needRefresh.value) {
-      updateAvailable.value = true;
-      // Fetch the current package.json version to update display
-      try {
-        const response = await fetch('/package.json?t=' + Date.now());
-        if (response.ok) {
-          const packageData = await response.json();
-          pendingVersion.value = packageData.version;
-        }
-      } catch (err) {
-        console.error('Error fetching updated version:', err);
-      }
-      notificationStore.success('Update available! Ready to install.');
-    } else {
-      // Check again after a short delay to ensure update had time to be detected
-      setTimeout(async () => {
-        if (needRefresh.value) {
-          updateAvailable.value = true;
-          // Try to get updated version
-          try {
-            const response = await fetch('/package.json?t=' + Date.now());
-            if (response.ok) {
-              const packageData = await response.json();
-              pendingVersion.value = packageData.version;
-            }
-          } catch (err) {
-            console.error('Error fetching updated version:', err);
-          }
-          notificationStore.success('Update available! Ready to install.');
-        } else {
-          notificationStore.info('Your app is up to date!');
-          
-          // Update the "last checked" timestamp
-          settingsStore.setLastUpdated(new Date().toISOString());
-        }
-        isCheckingForUpdates.value = false;
-      }, 1000);
+    // Directly check for version updates by fetching package.json
+    await checkNewVersion();
+    
+    // If no updates were found and this wasn't a silent check
+    if (!updateAvailable.value && !silent) {
+      notificationStore.info('Your app is up to date!');
+      // Update the "last checked" timestamp
+      settingsStore.setLastUpdated(new Date().toISOString());
     }
   } catch (err) {
     console.error('Error checking for updates:', err);
-    notificationStore.error('Failed to check for updates');
-    error.value = err.message || 'Failed to check for updates';
-    isCheckingForUpdates.value = false;
+    if (!silent) {
+      notificationStore.error('Failed to check for updates');
+      error.value = err.message || 'Failed to check for updates';
+    }
+  } finally {
+    if (!silent) {
+      isCheckingForUpdates.value = false;
+    }
   }
 };
 
-// Install available update
+// Install available update using vite-plugin-pwa mechanism
 const installUpdate = () => {
   if (needRefresh.value) {
-    // Use the vite-plugin-pwa's reload mechanism
-    window.location.reload();
-    
-    // Update the last updated timestamp
-    settingsStore.setLastUpdated(new Date().toISOString());
+    console.log('Installing update via vite-plugin-pwa reload mechanism');
+    updateServiceWorker(false); // This activates the waiting service worker
+  } else if (updateAvailable.value) {
+    console.log('Manually triggering update process');
+    // For PWA environments, use location reload with cache busting
+    window.location.href = window.location.href.split('?')[0] + '?updated=' + Date.now();
   } else {
     // No update available, force a check
     checkForUpdates();
