@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/your-username/promptbox/compare/v1.6.0...v1.7.0) (2025-05-12)
+
+
+### Features
+
+* hide default template edits ([083a13c](https://github.com/your-username/promptbox/commit/083a13c5db0b8c8cd875a5e63d6da509f75ebc77))
+
 ## [1.6.0](https://github.com/your-username/promptbox/compare/v1.5.0...v1.6.0) (2025-05-11)
 
 
